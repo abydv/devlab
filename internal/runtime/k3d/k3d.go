@@ -6,6 +6,7 @@ package k3d
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,9 @@ import (
 )
 
 const binaryName = "k3d"
+
+// ErrAlreadyExists is returned when a cluster name is already in use.
+var ErrAlreadyExists = errors.New("k3d: cluster name already exists")
 
 // Runtime executes k3d cluster operations. It is the only DevLab
 // component permitted to invoke the k3d CLI.
@@ -42,7 +46,25 @@ func (r *Runtime) CreateCluster(ctx context.Context, name string) error {
 		return err
 	}
 	_, err := r.run(ctx, "cluster", "create", name)
-	return err
+	if err != nil {
+		if isAlreadyExistsError(err) {
+			return ErrAlreadyExists
+		}
+		return err
+	}
+	return nil
+}
+
+// GetKubeconfig returns the kubeconfig YAML for the cluster named name.
+func (r *Runtime) GetKubeconfig(ctx context.Context, name string) (string, error) {
+	if err := validateName(name); err != nil {
+		return "", err
+	}
+	result, err := r.run(ctx, "kubeconfig", "get", name)
+	if err != nil {
+		return "", err
+	}
+	return result.Stdout, nil
 }
 
 // DeleteCluster deletes the k3d cluster named name.
@@ -127,4 +149,8 @@ func validateName(name string) error {
 		return fmt.Errorf("k3d: cluster name is required")
 	}
 	return nil
+}
+
+func isAlreadyExistsError(err error) bool {
+	return strings.Contains(strings.ToLower(err.Error()), "already exists")
 }

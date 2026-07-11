@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 7 — Kubernetes Service
+
+- Add the `Service` interface, `Status` type, and `ErrNotFound`
+  (`internal/service`).
+- Add the Kubernetes Service (`internal/service/kubernetes`), backed
+  by a k3d cluster; `Status`/`Logs` read the server node container via
+  Docker Runtime; `Reset` composes k3d Runtime calls.
+- Extend `internal/runtime/k3d` with `ErrAlreadyExists` and
+  `GetKubeconfig`.
+- Add unit tests composing real `k3d.Runtime`/`docker.Runtime` over a
+  shared fake `runtime.Runtime`.
+
 ### Sprint 6 — Docker Runtime
 
 - Add the Docker Runtime (`internal/runtime/docker`), composed over an

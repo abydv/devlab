@@ -257,3 +257,55 @@ simplification, not a live tail).
 
 All three Runtimes (Shell, k3d, Docker) are now implemented. Next:
 Sprint 7 — Kubernetes Service (awaiting approval to start).
+
+## Sprint 7 — Kubernetes Service
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/service`: the `Service` interface (Create, Start, Stop,
+  Reset, Delete, Status, Logs — exactly the Service Rules verbs), a
+  `Status` type (created/running/stopped/error), and an `ErrNotFound`
+  sentinel. Justified as an interface now because three concrete
+  Services are explicitly planned (Kubernetes, Docker, Jenkins).
+- `internal/service/kubernetes`: the first `service.Service`
+  implementation, backed by a k3d cluster. Create/Start/Stop/Delete map
+  directly onto k3d Runtime's cluster methods; `Reset` composes
+  `ClusterExists` + `DeleteCluster` + `CreateCluster` since k3d has no
+  native reset; `Status`/`Logs` read the cluster's server node
+  container (`k3d-<cluster>-server-0`) via the Docker Runtime, since a
+  k3d cluster's nodes are themselves Docker containers. A `Kubeconfig`
+  method (beyond the `Service` interface) exposes the cluster's
+  kubeconfig for future consumers (e.g. a browser terminal, Sprint 13).
+- Extended `internal/runtime/k3d` (built in Sprint 5) with what this,
+  its first real consumer, needs: `ErrAlreadyExists` (classified from
+  real k3d stderr text, captured live: `"...because a cluster with
+  that name already exists"`) and `GetKubeconfig` (`k3d kubeconfig
+  get`). This is the same incremental pattern as Sprint 7 discovering
+  Sprint 5's package needed one more method — not scope creep on this
+  sprint, and not a redesign of Sprint 5's decisions.
+- Verified the full real lifecycle end-to-end before finalizing: wrote
+  a throwaway program (not committed) wiring Shell Runtime → k3d
+  Runtime + Docker Runtime → Kubernetes Service, and ran Create → Status
+  → Logs → Kubeconfig → Stop → Status → Start → Status → Reset → Status
+  → Delete → Status (confirmed `ErrNotFound`) against the real
+  `k3d`/`docker` in this sandbox. Cleaned up all resources afterward;
+  confirmed no leftover clusters or containers.
+- Unit tests compose real `k3d.Runtime`/`docker.Runtime` instances over
+  a single shared fake `runtime.Runtime` (routing on the underlying
+  binary), so they exercise the actual composition DevLab will run in
+  production — not a mock of the composition — while staying fast and
+  independent of `k3d`/Docker being installed.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: wiring Kubernetes Service into the Engine or
+Workspace (that dependency direction — Engine knowing about Services —
+belongs to Sprint 10, Workspace Lifecycle); Docker Service and Jenkins
+Service (Sprints 8-9); validating a Template's `services: ["kubernetes"]`
+entry against this implementation (ADR-0009 still applies — no
+service-type catalog exists yet, since one Service alone isn't a
+catalog).
+
+Next: Sprint 8 — Docker Service (awaiting approval to start).

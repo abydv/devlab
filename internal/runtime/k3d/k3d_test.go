@@ -82,7 +82,7 @@ func TestCreateClusterRequiresName(t *testing.T) {
 func TestCreateClusterFailsOnNonZeroExit(t *testing.T) {
 	fake := &fakeRuntime{
 		handle: func(cmd runtime.Command) (*runtime.Result, error) {
-			return &runtime.Result{ExitCode: 1, Stderr: "cluster already exists"}, nil
+			return &runtime.Result{ExitCode: 1, Stderr: "some other cluster create failure"}, nil
 		},
 	}
 	r := New(fake)
@@ -91,8 +91,57 @@ func TestCreateClusterFailsOnNonZeroExit(t *testing.T) {
 	if err == nil {
 		t.Fatal("CreateCluster() error = nil, want an error for a nonzero exit code")
 	}
-	if !strings.Contains(err.Error(), "cluster already exists") {
+	if !strings.Contains(err.Error(), "some other cluster create failure") {
 		t.Errorf("error = %v, want it to contain stderr", err)
+	}
+}
+
+// realAlreadyExistsStderr is the real k3d (v5.9.0) stderr text for a
+// duplicate cluster name, captured from a live instance.
+const realAlreadyExistsStderr = `Failed to create cluster 'devlab-errtest' because a cluster with that name already exists`
+
+func TestCreateClusterAlreadyExists(t *testing.T) {
+	fake := &fakeRuntime{
+		handle: func(cmd runtime.Command) (*runtime.Result, error) {
+			return &runtime.Result{ExitCode: 1, Stderr: realAlreadyExistsStderr}, nil
+		},
+	}
+	r := New(fake)
+
+	if err := r.CreateCluster(context.Background(), "demo"); !errors.Is(err, ErrAlreadyExists) {
+		t.Fatalf("CreateCluster() error = %v, want ErrAlreadyExists", err)
+	}
+}
+
+func TestGetKubeconfig(t *testing.T) {
+	const kubeconfigYAML = "apiVersion: v1\nkind: Config\n"
+	fake := &fakeRuntime{
+		handle: func(cmd runtime.Command) (*runtime.Result, error) {
+			return &runtime.Result{ExitCode: 0, Stdout: kubeconfigYAML}, nil
+		},
+	}
+	r := New(fake)
+
+	got, err := r.GetKubeconfig(context.Background(), "demo")
+	if err != nil {
+		t.Fatalf("GetKubeconfig() error = %v", err)
+	}
+	if got != kubeconfigYAML {
+		t.Errorf("GetKubeconfig() = %q, want %q", got, kubeconfigYAML)
+	}
+
+	call := lastCall(fake)
+	wantArgs := []string{"kubeconfig", "get", "demo"}
+	if strings.Join(call.Args, " ") != strings.Join(wantArgs, " ") {
+		t.Errorf("Args = %v, want %v", call.Args, wantArgs)
+	}
+}
+
+func TestGetKubeconfigRequiresName(t *testing.T) {
+	r := New(&fakeRuntime{})
+
+	if _, err := r.GetKubeconfig(context.Background(), ""); err == nil {
+		t.Fatal("GetKubeconfig() error = nil, want an error for an empty name")
 	}
 }
 

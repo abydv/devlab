@@ -317,3 +317,51 @@ the alternative — the Docker Engine SDK talking to the daemon socket
 directly — would sidestep that fragility but was rejected to stay
 consistent with ADR-0012's CLI-invocation design, shared with Shell and
 k3d Runtimes.
+
+---
+
+## ADR-0016: Kubernetes Service reads Status/Logs from the cluster's server node container via Docker Runtime
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/service/kubernetes.Service` holds both a
+`*k3d.Runtime` (for cluster lifecycle: Create/Start/Stop/Delete) and a
+`*docker.Runtime` (for `Status`/`Logs`), reading the well-known
+container name `k3d-<cluster>-server-0`. `Reset` has no k3d CLI
+equivalent, so it composes `ClusterExists` → `DeleteCluster` →
+`CreateCluster`.
+
+**Context:** k3d has no `cluster status` or `cluster logs` command; a
+k3d cluster's nodes are themselves Docker containers, and the
+`k3d-<cluster>-server-0` naming convention was confirmed against a
+real k3d (v5.9.0) cluster before relying on it. A Service depending on
+two different Runtimes is consistent with the architecture — "Services
+use a Runtime" constrains *how* they act (only through a Runtime,
+never `os/exec` directly), not that a Service is limited to exactly
+one Runtime instance. This was validated with a full real-lifecycle
+smoke test (Create → Status → Logs → Kubeconfig → Stop → Start →
+Reset → Delete) against live `k3d`/`docker`, not just the fake-backed
+unit tests.
+
+---
+
+## ADR-0017: Extending a prior sprint's Runtime when its first consumer needs more
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** Sprint 7 added `ErrAlreadyExists` and `GetKubeconfig` to
+`internal/runtime/k3d` (originally built in Sprint 5), rather than
+duplicating that logic in the Kubernetes Service or leaving the gap
+unaddressed.
+
+**Context:** CLAUDE.md's "never jump to future sprints" governs adding
+work that belongs to a *different, not-yet-approved* sprint (e.g.
+building Docker Service now). It does not mean a completed sprint's
+package is frozen forever — when Sprint 7 builds the first real
+consumer of Sprint 5's k3d Runtime and discovers a genuinely missing
+capability that Runtime should own, adding it there (not working around
+its absence in the consumer) is the correct layering and was already
+anticipated as normal by the Sprint 4→5 precedent (Shell Runtime
+needed no such extension, but the pattern was established).

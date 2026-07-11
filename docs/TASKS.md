@@ -98,4 +98,21 @@
 
 ## Sprint 7 — Kubernetes Service
 
+- [x] Define the `Service` interface, `Status` type, and `ErrNotFound`
+      (`internal/service`).
+- [x] Implement the Kubernetes Service (`internal/service/kubernetes`)
+      backed by a k3d cluster.
+- [x] Extend `internal/runtime/k3d` with `ErrAlreadyExists` and
+      `GetKubeconfig`, needed by this sprint's consumer.
+- [x] `Status`/`Logs` read the server node container via Docker
+      Runtime; `Reset` composes k3d Runtime calls (no native reset).
+- [x] Unit tests composing real `k3d.Runtime`/`docker.Runtime` over a
+      shared fake `runtime.Runtime`.
+- [x] Manually verify the full lifecycle end-to-end against real
+      `k3d`/`docker` (one-off; not part of the automated suite);
+      confirm no leftover resources afterward.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 8 — Docker Service
+
 Not started. Awaiting approval to begin.

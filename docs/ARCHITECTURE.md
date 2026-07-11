@@ -154,18 +154,37 @@ packages would have to route through.
 
 ## Service Contract
 
-Every Service implementation provides:
+`internal/service` defines the interface every Service implementation
+satisfies:
 
-- `Create`
-- `Start`
-- `Stop`
-- `Reset`
-- `Delete`
-- `Status`
-- `Logs`
+```go
+type Service interface {
+    Create(ctx context.Context) error
+    Start(ctx context.Context) error
+    Stop(ctx context.Context) error
+    Reset(ctx context.Context) error
+    Delete(ctx context.Context) error
+    Status(ctx context.Context) (Status, error)
+    Logs(ctx context.Context) (string, error)
+}
+```
 
-Planned service implementations: Kubernetes, Docker, Jenkins, Linux,
-Terraform, Ansible.
+`Status` is its own type (created/running/stopped/error) — deliberately
+not `workspace.Status` — keeping `internal/service` decoupled from
+`internal/workspace`, the same direction as the workspace/template
+decoupling (ADR-0008). `ErrNotFound` is a shared sentinel for
+`Status`/`Logs` when the underlying resource doesn't exist yet.
+
+`internal/service/kubernetes` is the first implementation, backed by a
+k3d cluster. It holds both a `*k3d.Runtime` (cluster lifecycle) and a
+`*docker.Runtime` (`Status`/`Logs`, read from the cluster's server node
+container `k3d-<cluster>-server-0`, since k3d nodes are themselves
+Docker containers) — a Service is not limited to one Runtime instance
+(ADR-0016). `Reset` composes `ClusterExists`/`DeleteCluster`/
+`CreateCluster` since k3d has no native reset operation.
+
+Planned service implementations: Kubernetes (done), Docker, Jenkins,
+Linux, Terraform, Ansible.
 
 ## Runtime Contract
 
