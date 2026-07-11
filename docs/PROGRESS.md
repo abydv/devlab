@@ -346,3 +346,53 @@ Explicitly out of scope: wiring Docker Service into the Engine/Workspace
 (Sprint 10); Jenkins Service (Sprint 9).
 
 Next: Sprint 9 — Jenkins Service (awaiting approval to start).
+
+## Sprint 9 — Jenkins Service
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/service/jenkins`: the third `service.Service`
+  implementation, built by composition rather than reimplementation —
+  it embeds `*servicedocker.Service` (Sprint 8), configured with
+  Jenkins-specific defaults (`jenkins/jenkins:lts`, port 8080 mapped to
+  a caller-chosen host port, `/var/jenkins_home` bind-mounted to a
+  caller-chosen host directory). `Start`/`Stop`/`Reset`/`Delete`/
+  `Status`/`Logs` come for free via Go's method promotion; only
+  `Create` is overridden (to `os.MkdirAll` the data directory first)
+  and one bonus method, `InitialAdminPassword`, is added.
+- Before finalizing the design, tested live whether the official
+  `jenkins/jenkins:lts` image (which runs as a non-root UID) would hit
+  a permission error against a plain host-created bind-mount directory
+  — a well-known Docker gotcha. It did not: Jenkins started cleanly and
+  the well-known `secrets/initialAdminPassword` file was both generated
+  correctly and readable directly from the host path. Because of that,
+  `InitialAdminPassword` is implemented as a plain host file read
+  (`os.ReadFile` on the bind-mounted path), not a `docker exec` into
+  the container — no new Runtime capability was needed, and reading a
+  file DevLab itself mounted is not "executing an operating system
+  command" any more than `workspace.Manager` reading `workspace.json`
+  directly is.
+- Verified the full lifecycle end-to-end with a throwaway program (not
+  committed): Create → Start → Status (running) → poll for
+  `InitialAdminPassword` → Logs → Stop → Status (stopped) → Delete →
+  Status (confirmed `ErrNotFound`), against the real `docker` in this
+  sandbox, including a real Jenkins boot. Cleaned up the container and
+  data directory afterward.
+- Unit tests cover the Jenkins-specific behavior (container spec
+  construction, data directory creation, missing-data-dir validation,
+  password file reading) plus one delegation check confirming struct
+  embedding correctly wires through to Docker Service's methods — full
+  Docker Service behavior is already covered by Sprint 8's own tests
+  and isn't re-tested here.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+All three planned Services (Kubernetes, Docker, Jenkins) are now
+implemented. Explicitly out of scope: wiring any Service into the
+Engine/Workspace, and validating a Template's `services` entries
+against a service-type catalog — both belong to Sprint 10, Workspace
+Lifecycle, which is next.
+
+Next: Sprint 10 — Workspace Lifecycle (awaiting approval to start).

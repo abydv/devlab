@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 9 — Jenkins Service
+
+- Add the Jenkins Service (`internal/service/jenkins`), embedding
+  `*servicedocker.Service` configured with Jenkins-specific defaults
+  (`jenkins/jenkins:lts`, port 8080, `/var/jenkins_home` volume).
+- Override `Create` to create the host data directory first; add
+  `InitialAdminPassword`, read directly from the bind-mounted host
+  path.
+- Add unit tests for Jenkins-specific behavior plus a delegation check.
+
+All three planned Services (Kubernetes, Docker, Jenkins) are complete.
+
 ### Sprint 8 — Docker Service
 
 - Add the Docker Service (`internal/service/docker`): a single

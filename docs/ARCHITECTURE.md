@@ -191,8 +191,18 @@ than a parallel struct (ADR-0018). Its `Status` mapping is the first to
 use `service.StatusCreated`, since a Docker container (unlike a k3d
 cluster) genuinely has a distinct "created but not started" state.
 
-Planned service implementations: Kubernetes (done), Docker (done),
-Jenkins, Linux, Terraform, Ansible.
+`internal/service/jenkins` is the third implementation: it embeds
+`*servicedocker.Service` configured with Jenkins-specific defaults
+(image, port, `/var/jenkins_home` volume) rather than reimplementing
+container lifecycle logic — `Start`/`Stop`/`Reset`/`Delete`/`Status`/
+`Logs` are inherited via Go method promotion, and only `Create` is
+overridden (to prepare the host data directory) plus one addition,
+`InitialAdminPassword`, reading directly from the bind-mounted host
+path rather than via a new Runtime capability (ADR-0019).
+
+All three planned Service implementations are complete: Kubernetes,
+Docker, Jenkins. Linux, Terraform, and Ansible are named as Service
+Rules examples in CLAUDE.md but have no dedicated roadmap sprint.
 
 ## Runtime Contract
 

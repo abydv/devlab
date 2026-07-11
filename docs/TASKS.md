@@ -131,4 +131,23 @@
 
 ## Sprint 9 — Jenkins Service
 
+- [x] Implement the Jenkins Service (`internal/service/jenkins`) by
+      embedding `*servicedocker.Service` with Jenkins-specific
+      `ContainerSpec` defaults.
+- [x] Override `Create` to `os.MkdirAll` the host data directory first.
+- [x] Add `InitialAdminPassword`, reading directly from the
+      bind-mounted host path.
+- [x] Manually verify the official Jenkins image has no permission
+      issue against a plain host-created bind-mount directory (one-off;
+      not part of the automated suite).
+- [x] Unit tests for Jenkins-specific behavior plus a delegation check.
+- [x] Manually verify the full lifecycle end-to-end against real
+      `docker` with a real Jenkins boot (one-off; not part of the
+      automated suite); confirm no leftover resources.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+All three planned Services (Kubernetes, Docker, Jenkins) are complete.
+
+## Sprint 10 — Workspace Lifecycle
+
 Not started. Awaiting approval to begin.

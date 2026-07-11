@@ -397,3 +397,38 @@ container in `"created"`, Start moved it to `"running"`, Stop to
 returned it to `"created"` (recreate does not imply start). This
 grounds the status mapping in observed behavior, not assumption, same
 practice as ADR-0015 and ADR-0016.
+
+---
+
+## ADR-0019: Jenkins Service is a configured Docker Service via struct embedding, not a fourth from-scratch implementation
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/service/jenkins.Service` embeds
+`*servicedocker.Service` (Sprint 8) rather than reimplementing
+container lifecycle logic or composing over `*docker.Runtime`
+directly like Docker Service does. `New` builds a
+`docker.ContainerSpec` with Jenkins-specific defaults (image, port
+8080, `/var/jenkins_home` volume) and passes it straight to
+`servicedocker.New`. `Start`/`Stop`/`Reset`/`Delete`/`Status`/`Logs`
+are inherited via Go method promotion, unmodified. Only `Create` is
+overridden — to `os.MkdirAll` the host data directory before
+delegating to the embedded Service's `Create` — and one addition,
+`InitialAdminPassword`, goes beyond the `Service` interface.
+
+**Context:** A Jenkins Service *is*, mechanically, a Docker container
+with Jenkins-specific configuration — there is no Jenkins-specific
+lifecycle behavior to justify a parallel implementation, so embedding
+avoids duplicating logic Sprint 8 already built and tested (the "no
+duplicate code" standard). `InitialAdminPassword` is implemented as a
+plain `os.ReadFile` on the bind-mounted host path, not a `docker exec`
+into the container: this was verified live before finalizing — the
+official `jenkins/jenkins:lts` image (which runs as a non-root UID,
+a well-known Docker bind-mount permission trap) started cleanly
+against a plain host-created directory in this sandbox, and its
+`secrets/initialAdminPassword` file was both generated and
+host-readable. Because DevLab itself controls that mount, reading it
+directly is not "executing an operating system command" any more than
+`workspace.Manager` reading `workspace.json` is — no new Runtime
+capability (e.g. a generic `docker exec` method) was needed for this.

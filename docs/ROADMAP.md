@@ -14,7 +14,7 @@ previous sprint has been approved.
 | 6      | Docker Runtime          | Complete    |
 | 7      | Kubernetes Service      | Complete    |
 | 8      | Docker Service          | Complete    |
-| 9      | Jenkins Service         | Not Started |
+| 9      | Jenkins Service         | Complete    |
 | 10     | Workspace Lifecycle     | Not Started |
 | 11     | REST API                | Not Started |
 | 12     | Dashboard               | Not Started |
