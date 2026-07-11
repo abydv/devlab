@@ -157,3 +157,48 @@ list inside `internal/template` now would duplicate knowledge that
 rightfully belongs to `internal/service` and could drift out of sync
 with it. This validation will be added once `internal/service` exists
 to be the source of truth.
+
+---
+
+## ADR-0010: `modernc.org/sqlite` (pure Go, no cgo) as the SQLite driver
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/storage` uses `modernc.org/sqlite` via
+`database/sql`, not a cgo-based driver (e.g. `mattn/go-sqlite3`).
+
+**Context:** CLAUDE.md's tech stack fixes SQLite as the persistence
+engine but not a specific driver. A cgo driver would require a C
+toolchain (gcc) to be present wherever DevLab is built, which works
+against "Ubuntu Desktop" self-hosted distribution simplicity —
+`go build` alone should be sufficient. `modernc.org/sqlite` is a pure
+Go transpilation of SQLite with no such requirement, at the cost of
+somewhat higher build times and binary size, which is an acceptable
+trade for a single-user desktop tool.
+
+---
+
+## ADR-0011: SQLite is an index over `workspace.json`, not its replacement
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/workspace.Manager` stores only a summary row
+per Workspace in SQLite (`id`, `name`, `status`, `template`,
+`created_at`, `updated_at`) — not `description` or `services`. `Get`
+always reads the full record from `workspace.json`. `List` queries the
+index for an ordered ID list, then reads each full record from disk;
+an ID present in the index but missing on disk is skipped rather than
+failing the whole listing. `Create` writes the index row first (so the
+name-uniqueness `UNIQUE COLLATE NOCASE` constraint is the single source
+of truth for uniqueness) and rolls it back if the subsequent
+directory/manifest write fails; `Delete` removes the on-disk directory
+before the index row.
+
+**Context:** Confirms and implements the design anticipated in
+ADR-0006. Keeping `workspace.json` authoritative avoids two competing
+sources of truth for a Workspace's full data (a common source of
+drift bugs); SQLite's role stays scoped to what it's good at —
+constraint enforcement and ordered/filtered queries — which is exactly
+what `Create`'s uniqueness check and `List`'s ordering need.

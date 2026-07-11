@@ -24,6 +24,10 @@ func TestLoadDefaultsToWorkingDirectory(t *testing.T) {
 	if cfg.TemplatesDir != wantTemplates {
 		t.Errorf("TemplatesDir = %q, want %q", cfg.TemplatesDir, wantTemplates)
 	}
+	wantDatabase := filepath.Join(cfg.HomeDir, databaseFile)
+	if cfg.DatabasePath != wantDatabase {
+		t.Errorf("DatabasePath = %q, want %q", cfg.DatabasePath, wantDatabase)
+	}
 }
 
 func TestLoadHonorsDevlabHome(t *testing.T) {
@@ -45,5 +49,9 @@ func TestLoadHonorsDevlabHome(t *testing.T) {
 	wantTemplates := filepath.Join(dir, templatesSubdir)
 	if cfg.TemplatesDir != wantTemplates {
 		t.Errorf("TemplatesDir = %q, want %q", cfg.TemplatesDir, wantTemplates)
+	}
+	wantDatabase := filepath.Join(dir, databaseFile)
+	if cfg.DatabasePath != wantDatabase {
+		t.Errorf("DatabasePath = %q, want %q", cfg.DatabasePath, wantDatabase)
 	}
 }

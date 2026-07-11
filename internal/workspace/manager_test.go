@@ -5,10 +5,28 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/abydv/devlab/internal/storage"
 )
 
+func newTestManager(t *testing.T) *Manager {
+	t.Helper()
+
+	db, err := storage.Open(filepath.Join(t.TempDir(), "devlab.db"))
+	if err != nil {
+		t.Fatalf("storage.Open() error = %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+
+	m, err := NewManager(t.TempDir(), db)
+	if err != nil {
+		t.Fatalf("NewManager() error = %v", err)
+	}
+	return m
+}
+
 func TestManagerCreate(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	ws, err := m.Create("my-workspace", "a test workspace", "kubernetes", []string{"jenkins"})
 	if err != nil {
@@ -44,7 +62,7 @@ func TestManagerCreate(t *testing.T) {
 }
 
 func TestManagerCreateRequiresName(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	if _, err := m.Create("  ", "", "", nil); !errors.Is(err, ErrNameRequired) {
 		t.Fatalf("Create() error = %v, want ErrNameRequired", err)
@@ -52,7 +70,7 @@ func TestManagerCreateRequiresName(t *testing.T) {
 }
 
 func TestManagerCreateRejectsDuplicateName(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	if _, err := m.Create("dup", "", "", nil); err != nil {
 		t.Fatalf("Create() error = %v", err)
@@ -63,7 +81,7 @@ func TestManagerCreateRejectsDuplicateName(t *testing.T) {
 }
 
 func TestManagerGet(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	created, err := m.Create("my-workspace", "", "", nil)
 	if err != nil {
@@ -80,15 +98,15 @@ func TestManagerGet(t *testing.T) {
 }
 
 func TestManagerGetNotFound(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	if _, err := m.Get("missing"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("Get() error = %v, want ErrNotFound", err)
 	}
 }
 
-func TestManagerListEmptyRootDoesNotExist(t *testing.T) {
-	m := NewManager(filepath.Join(t.TempDir(), "does-not-exist"))
+func TestManagerListEmpty(t *testing.T) {
+	m := newTestManager(t)
 
 	got, err := m.List()
 	if err != nil {
@@ -100,7 +118,7 @@ func TestManagerListEmptyRootDoesNotExist(t *testing.T) {
 }
 
 func TestManagerListOrdersByCreatedAt(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	first, err := m.Create("first", "", "", nil)
 	if err != nil {
@@ -124,7 +142,7 @@ func TestManagerListOrdersByCreatedAt(t *testing.T) {
 }
 
 func TestManagerDelete(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	ws, err := m.Create("to-delete", "", "", nil)
 	if err != nil {
@@ -141,10 +159,18 @@ func TestManagerDelete(t *testing.T) {
 	if _, err := os.Stat(m.dir(ws.ID)); !os.IsNotExist(err) {
 		t.Fatalf("workspace directory still exists after Delete()")
 	}
+
+	list, err := m.List()
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(list) != 0 {
+		t.Errorf("List() after delete = %v, want empty (index should be cleared)", list)
+	}
 }
 
 func TestManagerDeleteNotFound(t *testing.T) {
-	m := NewManager(t.TempDir())
+	m := newTestManager(t)
 
 	if err := m.Delete("missing"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("Delete() error = %v, want ErrNotFound", err)

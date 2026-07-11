@@ -97,3 +97,40 @@ to `internal/service`, starting Sprint 7); Storage/SQLite (Sprint 3);
 Runtimes and Services themselves (Sprints 4-9).
 
 Next: Sprint 3 — Storage (awaiting approval to start).
+
+## Sprint 3 — Storage
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/storage`: `Open(path string) (*sql.DB, error)` — a
+  domain-agnostic SQLite connection opener (pure-Go driver,
+  `modernc.org/sqlite`, no cgo). Creates the parent directory if
+  needed, pings the connection, enables foreign keys. Has no knowledge
+  of Workspace, Template, or any other domain type.
+- `internal/workspace`: added a SQLite index (`index.go`) backing the
+  Manager. `workspace.json` remains the source of truth for a
+  Workspace's full data (unchanged from Sprint 1, per ADR-0006); the
+  index now provides the case-insensitive name-uniqueness check
+  (replacing an O(n) directory scan) and the ordered ID list `List`
+  materializes from. `NewManager` now takes `(rootDir string, db
+  *sql.DB)` and returns `(*Manager, error)`, creating the `workspaces`
+  index table on first use. `Create` and `Delete` keep the index and
+  the on-disk manifest in sync, rolling back the index entry if the
+  filesystem write fails.
+- `internal/config`: added `DatabasePath` (`<HomeDir>/devlab.db`),
+  resolved the same way as `WorkspacesDir`/`TemplatesDir`.
+- Added `modernc.org/sqlite` as a direct dependency (`go.mod`/`go.sum`).
+- Unit tests for `internal/storage`; updated `workspace` and `engine`
+  tests to open a real temporary SQLite database, plus a new assertion
+  that `List()` reflects `Delete()` via the index.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: migrating Template definitions into SQLite
+(they remain on-disk JSON per Sprint 2 — Templates are static catalog
+data, not runtime-created records); Runtimes and Services (Sprints
+4-9).
+
+Next: Sprint 4 — Shell Runtime (awaiting approval to start).

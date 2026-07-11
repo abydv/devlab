@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/abydv/devlab/internal/storage"
 	"github.com/abydv/devlab/internal/template"
 	"github.com/abydv/devlab/internal/workspace"
 )
@@ -21,7 +22,18 @@ func newTestEngine(t *testing.T) *Engine {
 		t.Fatalf("templates.Load() error = %v", err)
 	}
 
-	return New(workspace.NewManager(t.TempDir()), templates)
+	db, err := storage.Open(filepath.Join(t.TempDir(), "devlab.db"))
+	if err != nil {
+		t.Fatalf("storage.Open() error = %v", err)
+	}
+	t.Cleanup(func() { db.Close() })
+
+	workspaces, err := workspace.NewManager(t.TempDir(), db)
+	if err != nil {
+		t.Fatalf("workspace.NewManager() error = %v", err)
+	}
+
+	return New(workspaces, templates)
 }
 
 func writeTemplate(t *testing.T, dir, filename, content string) {

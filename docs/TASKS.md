@@ -42,4 +42,20 @@
 
 ## Sprint 3 — Storage
 
+- [x] Implement `internal/storage.Open`: domain-agnostic SQLite
+      connection opener (pure-Go driver, no cgo).
+- [x] Add `DatabasePath` to `internal/config`.
+- [x] Add a SQLite index to `internal/workspace.Manager` (name
+      uniqueness check, ordered `List`), keeping `workspace.json` as
+      the source of truth for full Workspace data.
+- [x] Update `NewManager` to accept a `*sql.DB` and create its schema.
+- [x] Keep the index in sync on `Create`/`Delete`, rolling back on
+      filesystem failure.
+- [x] Add `modernc.org/sqlite` dependency; `go mod tidy`.
+- [x] Unit tests for `internal/storage`; update `workspace`/`engine`
+      tests to use a real SQLite database.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 4 — Shell Runtime
+
 Not started. Awaiting approval to begin.

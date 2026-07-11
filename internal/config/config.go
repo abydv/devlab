@@ -12,6 +12,7 @@ const (
 	envHomeDir       = "DEVLAB_HOME"
 	workspacesSubdir = "workspaces"
 	templatesSubdir  = "templates"
+	databaseFile     = "devlab.db"
 )
 
 // Config holds the resolved filesystem layout for a DevLab instance.
@@ -22,6 +23,8 @@ type Config struct {
 	WorkspacesDir string
 	// TemplatesDir is where Template definitions are loaded from.
 	TemplatesDir string
+	// DatabasePath is the SQLite database DevLab persists its indexes to.
+	DatabasePath string
 }
 
 // Load resolves the DevLab configuration.
@@ -48,5 +51,6 @@ func Load() (*Config, error) {
 		HomeDir:       home,
 		WorkspacesDir: filepath.Join(home, workspacesSubdir),
 		TemplatesDir:  filepath.Join(home, templatesSubdir),
+		DatabasePath:  filepath.Join(home, databaseFile),
 	}, nil
 }

@@ -108,6 +108,13 @@ ADR-0006) — never hardcoded. `internal/engine.Engine` sits above the
 Manager and is the only thing the future REST API calls into, per the
 CLI → REST API → Engine → Workspace Manager flow.
 
+`workspace.json` is the source of truth for a Workspace's full data.
+`internal/storage` (see Storage section below) additionally opens a
+SQLite database DevLab's own code indexes a summary of each Workspace
+into, used for the case-insensitive name-uniqueness check on `Create`
+and the ordered ID list `List` reads from — never as a second copy of
+the full record (ADR-0011).
+
 ## Template Engine
 
 Templates are data, not code: declarative `*.json` definitions under
@@ -131,6 +138,19 @@ not validate Service names against a catalog yet (see ADR-0009).
 `internal/engine.Engine.CreateWorkspace` resolves a Workspace's
 `Services` from its named Template at creation time; `internal/workspace`
 itself stays unaware of Templates (see ADR-0008).
+
+## Storage
+
+`internal/storage.Open(path string) (*sql.DB, error)` opens (creating if
+necessary) DevLab's SQLite database at `config.DatabasePath`
+(`<HomeDir>/devlab.db`), using the pure-Go `modernc.org/sqlite` driver
+so `go build` never requires a C toolchain (ADR-0010). The package has
+no knowledge of any domain type — schema ownership stays with the
+package that owns the data (e.g. `internal/workspace` creates and
+queries its own `workspaces` table). This keeps `internal/storage` a
+shared low-level utility, alongside `internal/config` and
+`internal/utils`, rather than a data-access layer other domain
+packages would have to route through.
 
 ## Service Contract
 

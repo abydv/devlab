@@ -1,12 +1,12 @@
 package workspace
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -21,18 +21,24 @@ const (
 	cacheDir     = "cache"
 )
 
-// Manager owns the lifecycle of Workspaces on disk. Every Workspace is
-// stored under rootDir/<id>/, with its manifest at workspace.json and
-// logs/, data/, and cache/ subdirectories.
+// Manager owns the lifecycle of Workspaces. workspace.json remains the
+// source of truth for each Workspace, stored under rootDir/<id>/
+// alongside its logs/, data/, and cache/ subdirectories. A SQLite index
+// (db) provides fast, ordered lookups without scanning the filesystem.
 type Manager struct {
 	rootDir string
+	db      *sql.DB
 	mu      sync.RWMutex
 }
 
-// NewManager returns a Manager that stores Workspaces under rootDir.
-// rootDir need not exist yet; it is created on first use.
-func NewManager(rootDir string) *Manager {
-	return &Manager{rootDir: rootDir}
+// NewManager returns a Manager that stores Workspaces under rootDir and
+// indexes them in db. rootDir need not exist yet; it is created on
+// first use.
+func NewManager(rootDir string, db *sql.DB) (*Manager, error) {
+	if err := initSchema(db); err != nil {
+		return nil, err
+	}
+	return &Manager{rootDir: rootDir, db: db}, nil
 }
 
 // Create creates a new Workspace and persists it to disk. name must be
@@ -46,14 +52,12 @@ func (m *Manager) Create(name, description, template string, services []string) 
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	existing, err := m.list()
+	taken, err := m.indexNameTaken(name)
 	if err != nil {
 		return nil, err
 	}
-	for _, ws := range existing {
-		if strings.EqualFold(ws.Name, name) {
-			return nil, ErrNameExists
-		}
+	if taken {
+		return nil, ErrNameExists
 	}
 
 	id, err := utils.NewID()
@@ -77,14 +81,20 @@ func (m *Manager) Create(name, description, template string, services []string) 
 		UpdatedAt:   now,
 	}
 
+	if err := m.indexInsert(ws); err != nil {
+		return nil, err
+	}
+
 	dir := m.dir(id)
 	for _, sub := range []string{logsDir, dataDir, cacheDir} {
 		if err := os.MkdirAll(filepath.Join(dir, sub), 0o755); err != nil {
+			_ = m.indexDelete(id)
 			return nil, fmt.Errorf("workspace: create %s directory: %w", sub, err)
 		}
 	}
 
 	if err := m.write(ws); err != nil {
+		_ = m.indexDelete(id)
 		return nil, err
 	}
 
@@ -122,7 +132,8 @@ func (m *Manager) Delete(id string) error {
 	if err := os.RemoveAll(dir); err != nil {
 		return fmt.Errorf("workspace: delete %s: %w", id, err)
 	}
-	return nil
+
+	return m.indexDelete(id)
 }
 
 func (m *Manager) dir(id string) string {
@@ -147,21 +158,17 @@ func (m *Manager) read(id string) (*Workspace, error) {
 }
 
 func (m *Manager) list() ([]*Workspace, error) {
-	entries, err := os.ReadDir(m.rootDir)
-	if errors.Is(err, os.ErrNotExist) {
-		return []*Workspace{}, nil
-	}
+	ids, err := m.indexList()
 	if err != nil {
-		return nil, fmt.Errorf("workspace: read root directory: %w", err)
+		return nil, err
 	}
 
-	workspaces := make([]*Workspace, 0, len(entries))
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		ws, err := m.read(entry.Name())
+	workspaces := make([]*Workspace, 0, len(ids))
+	for _, id := range ids {
+		ws, err := m.read(id)
 		if errors.Is(err, ErrNotFound) {
+			// Indexed but missing on disk: index and filesystem have
+			// drifted apart. Skip rather than fail the whole listing.
 			continue
 		}
 		if err != nil {
@@ -169,10 +176,6 @@ func (m *Manager) list() ([]*Workspace, error) {
 		}
 		workspaces = append(workspaces, ws)
 	}
-
-	sort.Slice(workspaces, func(i, j int) bool {
-		return workspaces[i].CreatedAt.Before(workspaces[j].CreatedAt)
-	})
 
 	return workspaces, nil
 }

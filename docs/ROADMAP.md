@@ -8,7 +8,7 @@ previous sprint has been approved.
 | 0      | Architecture            | Complete    |
 | 1      | Workspace Engine        | Complete    |
 | 2      | Template Engine         | Complete    |
-| 3      | Storage                 | Not Started |
+| 3      | Storage                 | Complete    |
 | 4      | Shell Runtime           | Not Started |
 | 5      | k3d Runtime             | Not Started |
 | 6      | Docker Runtime          | Not Started |

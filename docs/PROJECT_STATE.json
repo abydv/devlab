@@ -3,8 +3,8 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 2,
-  "currentSprintName": "Template Engine",
+  "currentSprint": 3,
+  "currentSprintName": "Storage",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
@@ -12,7 +12,7 @@
     { "id": 0, "name": "Architecture", "status": "complete" },
     { "id": 1, "name": "Workspace Engine", "status": "complete" },
     { "id": 2, "name": "Template Engine", "status": "complete" },
-    { "id": 3, "name": "Storage", "status": "not_started" },
+    { "id": 3, "name": "Storage", "status": "complete" },
     { "id": 4, "name": "Shell Runtime", "status": "not_started" },
     { "id": 5, "name": "k3d Runtime", "status": "not_started" },
     { "id": 6, "name": "Docker Runtime", "status": "not_started" },
@@ -53,8 +53,16 @@
     "Wire Engine.CreateWorkspace to resolve Services from a Template",
     "Add Engine.ListTemplates / Engine.GetTemplate",
     "Add unit tests for template.Registry; update engine tests",
-    "Verify the repository builds (Sprint 2)"
+    "Verify the repository builds (Sprint 2)",
+    "Implement internal/storage.Open (SQLite, pure Go, no cgo)",
+    "Add DatabasePath to internal/config",
+    "Add SQLite index to workspace.Manager (name uniqueness, ordered List)",
+    "Update workspace.NewManager to accept *sql.DB and return error",
+    "Keep index in sync with workspace.json on Create/Delete, with rollback",
+    "Add modernc.org/sqlite dependency; go mod tidy",
+    "Add unit tests for internal/storage; update workspace/engine tests to use real SQLite",
+    "Verify the repository builds (Sprint 3)"
   ],
-  "pendingApproval": "Sprint 3 - Storage",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Workspace persistence is JSON-on-disk (Sprint 1) — SQLite (internal/storage) arrives in Sprint 3. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New now takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7."
+  "pendingApproval": "Sprint 4 - Shell Runtime",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7. workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011)."
 }
