@@ -396,3 +396,86 @@ against a service-type catalog — both belong to Sprint 10, Workspace
 Lifecycle, which is next.
 
 Next: Sprint 10 — Workspace Lifecycle (awaiting approval to start).
+
+## Sprint 10 — Workspace Lifecycle
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+The largest sprint so far: wires Workspace, Template, Engine, Runtime,
+and Service together into a working, verified end-to-end system.
+
+Before implementation, asked the user how the generic `"docker"`
+Service should behave by default, since Templates (Sprint 2) carry no
+per-service config and nothing upstream specified an image. Answer:
+Docker-in-Docker (`docker:dind`) — the standard devcontainer/CI
+pattern for a generic Docker workspace.
+
+Delivered:
+
+- **Service type catalog** (`internal/service/types.go`): `KnownTypes`
+  / `IsKnownType`, covering all six Service Rules examples
+  (kubernetes, docker, jenkins, linux, terraform, ansible) — not just
+  the three implemented ones, so `templates/linux.json` etc. (seeded in
+  Sprint 2) keep loading. `internal/template.Registry.Load` now
+  validates each Template's `services` entries against this catalog
+  (`ErrUnknownService`), finally fulfilling ADR-0009.
+- **`internal/service/factory`**: builds the concrete `service.Service`
+  for a service type, workspace ID, and data directory. Kubernetes →
+  `kubernetes.New`; Jenkins → `jenkins.New` with a dynamically
+  allocated free host port (`utils.FreePort`, new) and
+  `<dataDir>/jenkins`; Docker → Docker-in-Docker (privileged,
+  named-volume storage — see below); Linux/Terraform/Ansible → a clear
+  "recognized but not implemented yet" error, not silently ignored.
+- **`internal/runtime/docker`**: added `ContainerSpec.Privileged` and
+  `RemoveVolume`, both required by Docker-in-Docker and both verified
+  against a real `docker` (Engine 29.6.1) instance before implementing
+  — including the discovery, live, that a host bind-mount for dind's
+  `/var/lib/docker` leaves root-owned files an unprivileged process
+  cannot later delete, while `docker volume rm -f` on a Docker named
+  volume has no such problem (and is idempotent). The Docker-type
+  Service the factory builds is wrapped (`dindService`, unexported, in
+  `factory.go`) to remove that named volume as part of `Delete`.
+- **Workspace ID shortened** from 32 to 12 hex characters
+  (`internal/utils.NewID`, 6 random bytes): discovered live that k3d
+  rejects cluster names over 32 characters, and `devlab-<32hex>-kubernetes`
+  is 50. 48 bits of randomness remains far more than sufficient for a
+  personal, single-user tool.
+- **`internal/workspace.Manager`**: added `SetStatus` (persists a
+  Status change to both `workspace.json` and the SQLite index) and
+  `DataDir` (exposes a Workspace's data directory path without
+  leaking the package's internal layout).
+- **`internal/engine`**: split into `engine.go` (CRUD, unchanged in
+  shape) and `lifecycle.go` (new). `CreateWorkspace` still only
+  creates the Workspace record — Service resources are provisioned
+  lazily. `StartWorkspace` builds each attached Service, creates it if
+  `Status` reports `ErrNotFound`, then starts it (idempotent by
+  construction: every underlying `Start`/cluster-create call was
+  confirmed live to be a no-op success when already running/existing).
+  `StopWorkspace`/`ResetWorkspace`/`DeleteWorkspace` (now
+  context-aware) loop the same way. `WorkspaceStatus` aggregates each
+  Service's status into one Workspace-level `Status` (running only if
+  at least one Service is running and none disagree; error on a
+  disagreement or an underlying Service error) and persists it.
+  `WorkspaceLogs` concatenates each Service's logs, labeled by type.
+  `DeleteWorkspace` deletes every Service's resource before removing
+  the Workspace record.
+- Verified the complete real lifecycle end-to-end with a throwaway
+  program (not committed), for both the `kubernetes` and `docker`
+  templates: Create → Start → Status → Logs → Stop → Status → Start
+  (restart) → Status → Reset → Status → Delete → Status (confirmed
+  `ErrNotFound`) — against the real `k3d`/`docker` in this sandbox.
+  This run is what caught both the k3d name-length limit and the dind
+  bind-mount permission problem; both are fixed and re-verified clean
+  (no leftover clusters, containers, or volumes).
+- Unit tests throughout use fakes; the new/changed packages
+  (`service/types`, `service/factory`, `engine/lifecycle`,
+  `workspace.SetStatus`/`DataDir`, `docker.RemoveVolume`/`Privileged`)
+  are all covered.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: CLI/REST API wiring to actually call the
+Engine (Sprint 11); Linux/Terraform/Ansible Service implementations
+(no dedicated roadmap sprint exists for them — see ARCHITECTURE.md).
+
+Next: Sprint 11 — REST API (awaiting approval to start).

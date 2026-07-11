@@ -93,6 +93,26 @@ func TestCreateContainer(t *testing.T) {
 	}
 }
 
+func TestCreateContainerPrivileged(t *testing.T) {
+	fake := &fakeRuntime{}
+	r := New(fake)
+
+	spec := ContainerSpec{
+		Name:       "demo",
+		Image:      "docker:dind",
+		Privileged: true,
+	}
+	if err := r.CreateContainer(context.Background(), spec); err != nil {
+		t.Fatalf("CreateContainer() error = %v", err)
+	}
+
+	got := lastCall(fake)
+	want := []string{"create", "--name", "demo", "--privileged", "docker:dind"}
+	if strings.Join(got.Args, " ") != strings.Join(want, " ") {
+		t.Errorf("Args = %v, want %v", got.Args, want)
+	}
+}
+
 func TestCreateContainerRequiresNameAndImage(t *testing.T) {
 	r := New(&fakeRuntime{})
 
@@ -200,6 +220,35 @@ func TestRemoveContainerAlreadyAbsentIsNotAnError(t *testing.T) {
 
 	if err := r.RemoveContainer(context.Background(), "demo"); err != nil {
 		t.Fatalf("RemoveContainer() error = %v, want nil", err)
+	}
+}
+
+func TestRemoveVolume(t *testing.T) {
+	fake := &fakeRuntime{}
+	r := New(fake)
+
+	if err := r.RemoveVolume(context.Background(), "demo-vol"); err != nil {
+		t.Fatalf("RemoveVolume() error = %v", err)
+	}
+
+	got := lastCall(fake)
+	want := []string{"volume", "rm", "-f", "demo-vol"}
+	if strings.Join(got.Args, " ") != strings.Join(want, " ") {
+		t.Errorf("Args = %v, want %v", got.Args, want)
+	}
+}
+
+func TestRemoveVolumeAlreadyAbsentIsNotAnError(t *testing.T) {
+	// Real "docker volume rm -f" on a nonexistent volume exits 0.
+	fake := &fakeRuntime{
+		handle: func(cmd runtime.Command) (*runtime.Result, error) {
+			return &runtime.Result{ExitCode: 0, Stderr: "get demo-vol: no such volume"}, nil
+		},
+	}
+	r := New(fake)
+
+	if err := r.RemoveVolume(context.Background(), "demo-vol"); err != nil {
+		t.Fatalf("RemoveVolume() error = %v, want nil", err)
 	}
 }
 

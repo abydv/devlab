@@ -117,6 +117,35 @@ func (m *Manager) List() ([]*Workspace, error) {
 	return m.list()
 }
 
+// SetStatus updates a Workspace's Status, persists the change, and
+// returns the updated Workspace.
+func (m *Manager) SetStatus(id string, status Status) (*Workspace, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	ws, err := m.read(id)
+	if err != nil {
+		return nil, err
+	}
+
+	ws.Status = status
+	ws.UpdatedAt = time.Now().UTC()
+
+	if err := m.write(ws); err != nil {
+		return nil, err
+	}
+	if err := m.indexUpdateStatus(ws); err != nil {
+		return nil, err
+	}
+
+	return ws, nil
+}
+
+// DataDir returns the absolute path to a Workspace's data directory.
+func (m *Manager) DataDir(id string) string {
+	return filepath.Join(m.dir(id), dataDir)
+}
+
 // Delete permanently removes a Workspace and all of its on-disk data.
 func (m *Manager) Delete(id string) error {
 	m.mu.Lock()

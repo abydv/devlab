@@ -4,6 +4,7 @@
 package engine
 
 import (
+	"github.com/abydv/devlab/internal/service/factory"
 	"github.com/abydv/devlab/internal/template"
 	"github.com/abydv/devlab/internal/workspace"
 )
@@ -12,16 +13,19 @@ import (
 type Engine struct {
 	workspaces *workspace.Manager
 	templates  *template.Registry
+	services   *factory.Factory
 }
 
-// New returns an Engine backed by the given Workspace Manager and
-// Template Registry.
-func New(workspaces *workspace.Manager, templates *template.Registry) *Engine {
-	return &Engine{workspaces: workspaces, templates: templates}
+// New returns an Engine backed by the given Workspace Manager,
+// Template Registry, and Service Factory.
+func New(workspaces *workspace.Manager, templates *template.Registry, services *factory.Factory) *Engine {
+	return &Engine{workspaces: workspaces, templates: templates, services: services}
 }
 
 // CreateWorkspace creates a new Workspace from the named Template. The
-// Workspace's Services are resolved from the Template.
+// Workspace's Services are resolved from the Template. The Workspace's
+// underlying Service resources are not provisioned until StartWorkspace
+// is called.
 func (e *Engine) CreateWorkspace(name, description, templateName string) (*workspace.Workspace, error) {
 	tmpl, err := e.templates.Get(templateName)
 	if err != nil {
@@ -40,11 +44,6 @@ func (e *Engine) GetWorkspace(id string) (*workspace.Workspace, error) {
 // ListWorkspaces returns every known Workspace.
 func (e *Engine) ListWorkspaces() ([]*workspace.Workspace, error) {
 	return e.workspaces.List()
-}
-
-// DeleteWorkspace permanently removes a Workspace.
-func (e *Engine) DeleteWorkspace(id string) error {
-	return e.workspaces.Delete(id)
 }
 
 // ListTemplates returns every available Template a Workspace can be

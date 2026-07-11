@@ -86,6 +86,16 @@ func TestRegistryLoadRejectsNoServices(t *testing.T) {
 	}
 }
 
+func TestRegistryLoadRejectsUnknownServiceType(t *testing.T) {
+	dir := t.TempDir()
+	writeTemplate(t, dir, "bad.json", `{"name":"bogus","services":["not-a-real-service"]}`)
+
+	r := NewRegistry(dir)
+	if err := r.Load(); !errors.Is(err, ErrUnknownService) {
+		t.Fatalf("Load() error = %v, want ErrUnknownService", err)
+	}
+}
+
 func TestRegistryLoadRejectsDuplicateName(t *testing.T) {
 	dir := t.TempDir()
 	writeTemplate(t, dir, "a.json", `{"name":"dup","services":["docker"]}`)

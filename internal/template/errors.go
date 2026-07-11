@@ -11,4 +11,7 @@ var (
 	ErrNameExists = errors.New("template: name already exists")
 	// ErrServicesRequired is returned when a Template defines no Services.
 	ErrServicesRequired = errors.New("template: at least one service is required")
+	// ErrUnknownService is returned when a Template names a Service
+	// type that isn't recognized (see service.KnownTypes).
+	ErrUnknownService = errors.New("template: unknown service type")
 )

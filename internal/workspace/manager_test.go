@@ -105,6 +105,59 @@ func TestManagerGetNotFound(t *testing.T) {
 	}
 }
 
+func TestManagerSetStatus(t *testing.T) {
+	m := newTestManager(t)
+
+	created, err := m.Create("my-workspace", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	updated, err := m.SetStatus(created.ID, StatusRunning)
+	if err != nil {
+		t.Fatalf("SetStatus() error = %v", err)
+	}
+	if updated.Status != StatusRunning {
+		t.Errorf("Status = %q, want %q", updated.Status, StatusRunning)
+	}
+	if !updated.UpdatedAt.After(created.UpdatedAt) && updated.UpdatedAt != created.UpdatedAt {
+		t.Errorf("UpdatedAt = %v, want it to have advanced from %v", updated.UpdatedAt, created.UpdatedAt)
+	}
+
+	got, err := m.Get(created.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if got.Status != StatusRunning {
+		t.Errorf("persisted Status = %q, want %q", got.Status, StatusRunning)
+	}
+}
+
+func TestManagerSetStatusNotFound(t *testing.T) {
+	m := newTestManager(t)
+
+	if _, err := m.SetStatus("missing", StatusRunning); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("SetStatus() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestManagerDataDir(t *testing.T) {
+	m := newTestManager(t)
+
+	created, err := m.Create("my-workspace", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	want := filepath.Join(m.dir(created.ID), "data")
+	if got := m.DataDir(created.ID); got != want {
+		t.Errorf("DataDir() = %q, want %q", got, want)
+	}
+	if info, err := os.Stat(m.DataDir(created.ID)); err != nil || !info.IsDir() {
+		t.Errorf("DataDir() path does not exist as a directory: %v", err)
+	}
+}
+
 func TestManagerListEmpty(t *testing.T) {
 	m := newTestManager(t)
 

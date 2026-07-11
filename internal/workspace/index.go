@@ -54,6 +54,18 @@ func (m *Manager) indexInsert(ws *Workspace) error {
 	return nil
 }
 
+// indexUpdateStatus updates ws's status and updated_at in the index.
+func (m *Manager) indexUpdateStatus(ws *Workspace) error {
+	_, err := m.db.Exec(
+		`UPDATE workspaces SET status = ?, updated_at = ? WHERE id = ?`,
+		string(ws.Status), ws.UpdatedAt.Format(time.RFC3339Nano), ws.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("workspace: index update status %s: %w", ws.ID, err)
+	}
+	return nil
+}
+
 // indexDelete removes id from the index.
 func (m *Manager) indexDelete(id string) error {
 	if _, err := m.db.Exec(`DELETE FROM workspaces WHERE id = ?`, id); err != nil {

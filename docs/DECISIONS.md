@@ -432,3 +432,167 @@ host-readable. Because DevLab itself controls that mount, reading it
 directly is not "executing an operating system command" any more than
 `workspace.Manager` reading `workspace.json` is — no new Runtime
 capability (e.g. a generic `docker exec` method) was needed for this.
+
+---
+
+## ADR-0020: Service type catalog lives in `internal/service`; validated by Template, populated by Factory
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/service.KnownTypes`/`IsKnownType` list all six
+Service Rules examples (kubernetes, docker, jenkins, linux, terraform,
+ansible) — not just the three with a concrete implementation.
+`internal/template.Registry.Load` validates a Template's `services`
+entries against this catalog (`ErrUnknownService`).
+`internal/service/factory.Factory.Build` separately returns a clear
+"recognized service type but has no implementation yet" error for
+linux/terraform/ansible, rather than pretending they work or failing
+Template validation for them.
+
+**Context:** Fulfills the plan recorded in ADR-0009 now that all
+three implemented Services exist. Validating Templates against only
+the *implemented* subset would have broken `templates/linux.json`,
+`terraform.json`, and `ansible.json` (seeded in Sprint 2, all
+legitimate per CLAUDE.md's Service Rules) — the catalog's job is
+"is this a recognized service category," not "can we build it today."
+Putting the catalog in `internal/service` (not `internal/service/factory`)
+avoids a real import cycle: `internal/service/factory` must import the
+concrete `kubernetes`/`docker`/`jenkins` packages, which themselves
+import `internal/service` for the interface — if the catalog lived in
+`factory`, `internal/template` would need to import it and pull in
+every Runtime dependency transitively, just to check a string.
+`internal/service` itself stays dependency-free (stdlib only), so
+`internal/template` depending on it for validation costs nothing.
+
+---
+
+## ADR-0021: Generic "docker" Service defaults to Docker-in-Docker
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/service/factory.Build` constructs the
+`"docker"` service type as a `docker:dind` container (privileged, with
+its own isolated Docker daemon), not a caller-specified arbitrary
+image.
+
+**Context:** Templates (Sprint 2) carry only a bare service type name
+— no image, ports, or volumes — so wiring `CreateWorkspace` → Service
+provisioning required *some* default for what a generic "Docker
+workspace" runs, and nothing upstream specified one. Asked the user
+directly rather than guessing a product decision silently. Confirmed
+choice: Docker-in-Docker, the standard devcontainer/CI pattern for a
+workspace that needs to build/run its own containers — not a
+user-facing application, which "run an arbitrary named image" would
+have implied without a concrete use case driving it.
+
+---
+
+## ADR-0022: `ContainerSpec.Privileged`, verified required for Docker-in-Docker
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/runtime/docker.ContainerSpec` gained a
+`Privileged bool` field, wired to `docker create --privileged` when
+set.
+
+**Context:** Verified live before implementing: `docker:dind` without
+`--privileged` fails at daemon startup (`mount: permission denied
+(are you root?)`, exit 1); with `--privileged` it starts and its inner
+daemon is fully functional (confirmed via `docker exec ... docker
+version`). This is the same "extend a prior sprint's package when its
+new consumer needs it" pattern as ADR-0017.
+
+---
+
+## ADR-0023: Workspace IDs shortened to fit k3d's 32-character cluster name limit
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/utils.NewID` generates 6 random bytes (12 hex
+characters), not 16 bytes (32 hex characters).
+
+**Context:** Discovered live, not anticipated: k3d hard-rejects
+cluster names over 32 characters ("Cluster name must be <= 32
+characters"). The naming scheme `devlab-<id>-kubernetes` (established
+this sprint for Service resource names) is 18 characters of fixed
+overhead; a 32-hex-character ID made that 50 characters, breaking
+every Kubernetes-templated workspace outright — this was caught by
+the mandatory real end-to-end verification, not by unit tests (the
+unit tests, using fakes, could not have caught it). 12 hex characters
+(48 bits of randomness) keeps the total at 30 characters with margin,
+and remains far more collision-resistant than a personal, single-user
+tool's realistic workspace count will ever need.
+
+---
+
+## ADR-0024: Docker-in-Docker storage uses a named Docker volume, not a host bind-mount
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** The factory-built `"docker"` Service mounts
+`/var/lib/docker` from a Docker *named volume*
+(`devlab-<id>-docker-data`, passed via the same `-v` flag syntax
+Docker itself uses to distinguish volume names from host paths — no
+Runtime-level special casing needed), not a host directory under the
+Workspace's `data/`. Deleting it (`dindService.Delete`, an unexported
+wrapper in `factory.go`) calls the new `docker.Runtime.RemoveVolume`
+(`docker volume rm -f`, confirmed idempotent on an absent volume)
+after removing the container.
+
+**Context:** Discovered live, via the mandatory end-to-end
+verification: a host bind-mount for dind's storage works fine while
+the container is running, but the inner Docker daemon leaves
+root-owned files in it that DevLab's own unprivileged process cannot
+later remove — `workspace.Manager.Delete`'s final `os.RemoveAll` on
+the Workspace directory failed with `permission denied` on the first
+attempt. A Docker named volume is removed by the Docker daemon itself
+(root-equivalent for this purpose), so `docker volume rm -f` succeeds
+unconditionally regardless of what the dind daemon wrote inside it.
+Re-verified end-to-end after the fix: full lifecycle including Delete
+now succeeds with zero leftover clusters, containers, or volumes.
+
+---
+
+## ADR-0025: Engine lifecycle — lazy provisioning, idempotent Start, aggregated Status
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:**
+- `CreateWorkspace` only creates the Workspace record — it does not
+  provision any Service's underlying resource.
+- `StartWorkspace` builds each attached Service (via
+  `factory.Factory`), calls `Create` only if `Status` reports
+  `service.ErrNotFound`, then always calls `Start`. `StopWorkspace` and
+  `ResetWorkspace` follow the same "build then call the matching
+  Service method" shape.
+- `DeleteWorkspace` deletes every attached Service's resource *before*
+  removing the Workspace record (directory + index row).
+- `WorkspaceStatus` recomputes and persists a Workspace-level `Status`
+  from its Services: `running` only if at least one Service reports
+  running and none report a non-running state; `stopped` if none are
+  running; `error` if Services disagree (some running, some not) or
+  any Service itself reports `service.StatusError` or a genuine error.
+
+**Context:** Lazy provisioning avoids creating Docker containers/k3d
+clusters for workspaces a user creates but never starts — appropriate
+for a personal desktop tool where `CreateWorkspace` should be cheap.
+The unconditional `Start` call after a conditional `Create` is safe
+specifically because every underlying primitive was verified live to
+be idempotent when already in the target state: `k3d cluster start` on
+an already-running cluster, `docker start` on an already-running
+container, and `k3d cluster create`/`docker rm -f`/`docker volume rm -f`
+on resources that already exist or are already absent all exit 0
+rather than erroring — this was checked deliberately before writing
+the orchestration logic, not assumed. Deleting Services before the
+Workspace record (rather than the reverse) avoids ever leaving an
+orphaned cluster/container behind if the Workspace record is removed
+but Service cleanup wasn't attempted. Status aggregation intentionally
+has no "partial" bucket beyond mapping disagreement to `error`, since
+`workspace.Status` (Sprint 1) has no such state and CLAUDE.md doesn't
+call for adding one.

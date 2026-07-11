@@ -4,7 +4,12 @@
 // shipped with DevLab.
 package template
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/abydv/devlab/internal/service"
+)
 
 // Template is a named, reusable definition of the Services a Workspace
 // should be created with.
@@ -24,6 +29,9 @@ func (t *Template) validate() error {
 	for _, svc := range t.Services {
 		if strings.TrimSpace(svc) == "" {
 			return ErrServicesRequired
+		}
+		if !service.IsKnownType(svc) {
+			return fmt.Errorf("%w: %q", ErrUnknownService, svc)
 		}
 	}
 	return nil

@@ -42,6 +42,10 @@ type ContainerSpec struct {
 	Volumes []VolumeMapping
 	// Command optionally overrides the image's default command.
 	Command []string
+	// Privileged grants the container extended privileges, required by
+	// images that manage their own kernel-level resources (e.g.
+	// Docker-in-Docker).
+	Privileged bool
 }
 
 // Runtime executes Docker container operations. It is the only DevLab
@@ -73,6 +77,9 @@ func (r *Runtime) CreateContainer(ctx context.Context, spec ContainerSpec) error
 	}
 
 	args := []string{"create", "--name", spec.Name}
+	if spec.Privileged {
+		args = append(args, "--privileged")
+	}
 	for _, e := range spec.Env {
 		args = append(args, "-e", e)
 	}
@@ -129,6 +136,16 @@ func (r *Runtime) RemoveContainer(ctx context.Context, name string) error {
 		return err
 	}
 	_, err := r.run(ctx, "rm", "-f", name)
+	return err
+}
+
+// RemoveVolume removes a named volume. Removing an already-absent
+// volume is not an error.
+func (r *Runtime) RemoveVolume(ctx context.Context, name string) error {
+	if err := validateName(name); err != nil {
+		return err
+	}
+	_, err := r.run(ctx, "volume", "rm", "-f", name)
 	return err
 }
 

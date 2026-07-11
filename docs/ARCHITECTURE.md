@@ -59,6 +59,10 @@ cmd/devlab/          CLI entrypoint / process bootstrap
 internal/engine/     Workspace orchestration
 internal/workspace/  Workspace domain model and manager
 internal/service/    Service lifecycle contract and implementations
+  kubernetes/        Kubernetes Service (k3d-backed)
+  docker/            Docker Service
+  jenkins/           Jenkins Service
+  factory/           Builds a Service from a type name + Workspace context
 internal/runtime/    Runtime contract and implementations
   shell/             Shell runtime
   docker/            Docker runtime
@@ -102,11 +106,17 @@ data/
 cache/
 ```
 
-`internal/workspace.Manager` owns this layout (Create/Get/List/Delete).
-`WorkspacesDir` is resolved by `internal/config` (via `DEVLAB_HOME`, see
-ADR-0006) — never hardcoded. `internal/engine.Engine` sits above the
-Manager and is the only thing the future REST API calls into, per the
-CLI → REST API → Engine → Workspace Manager flow.
+`internal/workspace.Manager` owns this layout (Create/Get/List/Delete/
+SetStatus/DataDir). `WorkspacesDir` is resolved by `internal/config`
+(via `DEVLAB_HOME`, see ADR-0006) — never hardcoded. `internal/engine.Engine`
+sits above the Manager and is the only thing the future REST API calls
+into, per the CLI → REST API → Engine → Workspace Manager flow.
+
+A Workspace's `ID` (from `internal/utils.NewID`) is 12 hex characters,
+not a more conventional 32 — short enough that
+`devlab-<id>-kubernetes`, the naming scheme Service resources use (see
+Workspace Lifecycle below), fits within k3d's 32-character cluster
+name limit (ADR-0023).
 
 `workspace.json` is the source of truth for a Workspace's full data.
 `internal/storage` (see Storage section below) additionally opens a
@@ -132,8 +142,12 @@ Template should have.
 `internal/template.Registry` loads and validates these definitions
 (`Load`/`Get`/`List`) from `TemplatesDir` (resolved by
 `internal/config`, see ADR-0006's sibling for `WorkspacesDir`). It
-enforces a required, unique name and at least one Service — it does
-not validate Service names against a catalog yet (see ADR-0009).
+enforces a required, unique name, at least one Service, and — since
+Sprint 10 — that every named Service is a recognized type
+(`service.IsKnownType`, `ErrUnknownService`; ADR-0020). "Recognized"
+is broader than "implemented": all six Service Rules examples validate
+successfully even though only three have a concrete `service.Service`
+today.
 
 `internal/engine.Engine.CreateWorkspace` resolves a Workspace's
 `Services` from its named Template at creation time; `internal/workspace`
@@ -204,6 +218,21 @@ All three planned Service implementations are complete: Kubernetes,
 Docker, Jenkins. Linux, Terraform, and Ansible are named as Service
 Rules examples in CLAUDE.md but have no dedicated roadmap sprint.
 
+`internal/service/factory.Factory.Build(serviceType, workspaceID,
+dataDir)` constructs the right concrete Service for a type name,
+naming its underlying resource `devlab-<workspaceID>-<serviceType>`.
+The generic `"docker"` type builds a privileged Docker-in-Docker
+container (`docker:dind`) rather than an arbitrary user image, per an
+explicit product decision (ADR-0021) — its storage is a Docker named
+volume, not a host bind-mount under the Workspace's `data/`, because a
+bind-mount was confirmed live to leave root-owned files an
+unprivileged process cannot later remove (ADR-0022, ADR-0024). The
+`"jenkins"` type allocates a free host port per Workspace
+(`utils.FreePort`) so multiple Jenkins-backed Workspaces don't collide.
+`Build` returns a clear error for `linux`/`terraform`/`ansible` —
+recognized types with no implementation yet — rather than silently
+doing nothing.
+
 ## Runtime Contract
 
 Only the Runtime layer executes operating system commands. Services must
@@ -252,6 +281,40 @@ verb has a real `docker` equivalent — exposing the full set:
 
 All three planned Runtime implementations are complete: Shell Runtime,
 k3d Runtime, Docker Runtime.
+
+## Workspace Lifecycle
+
+`internal/engine.Engine` is where Workspace, Template, Service, and
+Runtime finally meet:
+
+- `CreateWorkspace` only creates the Workspace record — it does not
+  provision any Service's underlying resource (ADR-0025). Creating a
+  Workspace is cheap; nothing is pulled or started until requested.
+- `StartWorkspace` builds every attached Service via the Factory,
+  calls `Create` on any that report `service.ErrNotFound`, then always
+  calls `Start`. This is safe unconditionally because every underlying
+  primitive (`k3d cluster start`, `docker start`, `k3d cluster create`,
+  ...) was confirmed live to be a no-op success when the resource is
+  already in the target state, not an error (ADR-0025).
+- `StopWorkspace` / `ResetWorkspace` loop the same "build then call the
+  matching Service method" shape.
+- `DeleteWorkspace` (now `context.Context`-aware) deletes every
+  Service's resource *before* removing the Workspace record, so a
+  failure never leaves an orphaned cluster/container with no
+  corresponding Workspace.
+- `WorkspaceStatus` recomputes a Workspace-level `workspace.Status`
+  from its Services' individual `service.Status` values — running only
+  if at least one Service is running and none disagree, stopped if
+  none are running, error on disagreement or an underlying Service
+  error — and persists it via `workspace.Manager.SetStatus`.
+- `WorkspaceLogs` concatenates every Service's logs, each labeled with
+  its service type.
+
+The full lifecycle (Create → Start → Status → Logs → Stop → Start →
+Reset → Delete) was verified end-to-end against real `k3d`/`docker`
+for both the `kubernetes` and `docker` templates before this sprint
+was considered complete — see ADR-0023 and ADR-0024 for what that
+caught.
 
 ## Design Rules
 

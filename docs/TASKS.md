@@ -150,4 +150,28 @@ All three planned Services (Kubernetes, Docker, Jenkins) are complete.
 
 ## Sprint 10 — Workspace Lifecycle
 
+- [x] Clarify generic "docker" Service default behavior with the user
+      (Docker-in-Docker).
+- [x] Add service type catalog (`service.KnownTypes`/`IsKnownType`);
+      wire Template validation against it (fulfills ADR-0009).
+- [x] Implement `internal/service/factory` to build Services from a
+      type name, workspace ID, and data directory.
+- [x] Add `ContainerSpec.Privileged` and `docker.RemoveVolume`; verify
+      Docker-in-Docker behavior (permissions, named volume vs.
+      bind-mount) against real `docker`.
+- [x] Shorten `utils.NewID` to fit k3d's 32-character cluster name
+      limit (discovered live).
+- [x] Add `workspace.Manager.SetStatus` and `DataDir`.
+- [x] Wire `internal/engine`: lazy Service provisioning on
+      `StartWorkspace`; `StopWorkspace`/`ResetWorkspace`; Workspace
+      status aggregation across Services; `WorkspaceLogs`;
+      `DeleteWorkspace` now cleans up Services first.
+- [x] Unit tests for every new/changed piece.
+- [x] Manually verify the complete real lifecycle end-to-end for both
+      the `kubernetes` and `docker` templates (one-off; not part of
+      the automated suite); confirm no leftover resources.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 11 — REST API
+
 Not started. Awaiting approval to begin.

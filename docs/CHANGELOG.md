@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 10 — Workspace Lifecycle
+
+- Add the service type catalog (`internal/service/types.go`):
+  `KnownTypes`/`IsKnownType`, covering all six Service Rules examples.
+- Wire `internal/template.Registry.Load` to validate `services`
+  entries against the catalog (`ErrUnknownService`).
+- Add `internal/service/factory`: builds a `service.Service` from a
+  type name, workspace ID, and data directory.
+- Add `ContainerSpec.Privileged` and `docker.Runtime.RemoveVolume`
+  (`internal/runtime/docker`), required for Docker-in-Docker.
+- Shorten `utils.NewID` from 32 to 12 hex characters, to fit k3d's
+  32-character cluster name limit.
+- Add `workspace.Manager.SetStatus` and `DataDir`.
+- Add `internal/engine/lifecycle.go`: `StartWorkspace`,
+  `StopWorkspace`, `ResetWorkspace`, `WorkspaceStatus`,
+  `WorkspaceLogs`; `DeleteWorkspace` is now context-aware and cleans up
+  every attached Service before removing the Workspace record.
+- Add unit tests for every new/changed piece.
+
 ### Sprint 9 — Jenkins Service
 
 - Add the Jenkins Service (`internal/service/jenkins`), embedding
