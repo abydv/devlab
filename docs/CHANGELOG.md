@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 2 — Template Engine
+
+- Add `Template` domain model and `Registry` (`internal/template`):
+  loads and validates `*.json` definitions from a directory.
+- Seed `templates/` with kubernetes, docker, jenkins, linux, terraform,
+  and ansible definitions.
+- Add `TemplatesDir` to `internal/config`.
+- `engine.Engine.CreateWorkspace` now resolves a Workspace's Services
+  from its Template instead of taking them as a caller-supplied list.
+- Add `Engine.ListTemplates` / `Engine.GetTemplate`.
+- Add unit tests for `template.Registry`; update `engine` tests.
+
 ### Sprint 1 — Workspace Engine
 
 - Add `Workspace` domain model and `Status` enum (`internal/workspace`).

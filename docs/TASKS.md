@@ -28,4 +28,18 @@
 
 ## Sprint 2 — Template Engine
 
+- [x] Define `Template` domain model (`internal/template`).
+- [x] Implement `template.Registry`: load/validate `*.json` definitions
+      from a directory, `Get`/`List`.
+- [x] Add `TemplatesDir` to `internal/config`.
+- [x] Seed `templates/` with one definition per Service Rules example
+      (kubernetes, docker, jenkins, linux, terraform, ansible).
+- [x] Wire `internal/engine.Engine` to resolve a Workspace's Services
+      from its Template on creation.
+- [x] Add `Engine.ListTemplates` / `Engine.GetTemplate`.
+- [x] Unit tests for `template.Registry` and updated `engine` tests.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 3 — Storage
+
 Not started. Awaiting approval to begin.

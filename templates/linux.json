@@ -1,0 +1,5 @@
+{
+  "name": "linux",
+  "description": "A plain Linux shell workspace.",
+  "services": ["linux"]
+}

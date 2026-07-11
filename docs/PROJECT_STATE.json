@@ -3,15 +3,15 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 1,
-  "currentSprintName": "Workspace Engine",
+  "currentSprint": 2,
+  "currentSprintName": "Template Engine",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
   "sprints": [
     { "id": 0, "name": "Architecture", "status": "complete" },
     { "id": 1, "name": "Workspace Engine", "status": "complete" },
-    { "id": 2, "name": "Template Engine", "status": "not_started" },
+    { "id": 2, "name": "Template Engine", "status": "complete" },
     { "id": 3, "name": "Storage", "status": "not_started" },
     { "id": 4, "name": "Shell Runtime", "status": "not_started" },
     { "id": 5, "name": "k3d Runtime", "status": "not_started" },
@@ -46,8 +46,15 @@
     "Implement internal/config for path resolution",
     "Implement internal/utils.NewID",
     "Add unit tests for config, utils, workspace, engine",
-    "Verify the repository builds (Sprint 1)"
+    "Verify the repository builds (Sprint 1)",
+    "Implement Template domain model and Registry (internal/template)",
+    "Seed templates/ with kubernetes, docker, jenkins, linux, terraform, ansible definitions",
+    "Add TemplatesDir to internal/config",
+    "Wire Engine.CreateWorkspace to resolve Services from a Template",
+    "Add Engine.ListTemplates / Engine.GetTemplate",
+    "Add unit tests for template.Registry; update engine tests",
+    "Verify the repository builds (Sprint 2)"
   ],
-  "pendingApproval": "Sprint 2 - Template Engine",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Workspace persistence is JSON-on-disk (Sprint 1) — SQLite (internal/storage) arrives in Sprint 3. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10."
+  "pendingApproval": "Sprint 3 - Storage",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Workspace persistence is JSON-on-disk (Sprint 1) — SQLite (internal/storage) arrives in Sprint 3. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New now takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7."
 }

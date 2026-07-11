@@ -108,6 +108,30 @@ ADR-0006) — never hardcoded. `internal/engine.Engine` sits above the
 Manager and is the only thing the future REST API calls into, per the
 CLI → REST API → Engine → Workspace Manager flow.
 
+## Template Engine
+
+Templates are data, not code: declarative `*.json` definitions under
+`templates/`, each naming the Services a Workspace created from that
+Template should have.
+
+```json
+{
+  "name": "kubernetes",
+  "description": "A single-node Kubernetes workspace backed by k3d.",
+  "services": ["kubernetes"]
+}
+```
+
+`internal/template.Registry` loads and validates these definitions
+(`Load`/`Get`/`List`) from `TemplatesDir` (resolved by
+`internal/config`, see ADR-0006's sibling for `WorkspacesDir`). It
+enforces a required, unique name and at least one Service — it does
+not validate Service names against a catalog yet (see ADR-0009).
+
+`internal/engine.Engine.CreateWorkspace` resolves a Workspace's
+`Services` from its named Template at creation time; `internal/workspace`
+itself stays unaware of Templates (see ADR-0008).
+
 ## Service Contract
 
 Every Service implementation provides:

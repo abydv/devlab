@@ -16,9 +16,13 @@ func TestLoadDefaultsToWorkingDirectory(t *testing.T) {
 	if cfg.HomeDir == "" {
 		t.Fatal("HomeDir is empty")
 	}
-	want := filepath.Join(cfg.HomeDir, workspacesSubdir)
-	if cfg.WorkspacesDir != want {
-		t.Errorf("WorkspacesDir = %q, want %q", cfg.WorkspacesDir, want)
+	wantWorkspaces := filepath.Join(cfg.HomeDir, workspacesSubdir)
+	if cfg.WorkspacesDir != wantWorkspaces {
+		t.Errorf("WorkspacesDir = %q, want %q", cfg.WorkspacesDir, wantWorkspaces)
+	}
+	wantTemplates := filepath.Join(cfg.HomeDir, templatesSubdir)
+	if cfg.TemplatesDir != wantTemplates {
+		t.Errorf("TemplatesDir = %q, want %q", cfg.TemplatesDir, wantTemplates)
 	}
 }
 
@@ -34,8 +38,12 @@ func TestLoadHonorsDevlabHome(t *testing.T) {
 	if cfg.HomeDir != dir {
 		t.Errorf("HomeDir = %q, want %q", cfg.HomeDir, dir)
 	}
-	want := filepath.Join(dir, workspacesSubdir)
-	if cfg.WorkspacesDir != want {
-		t.Errorf("WorkspacesDir = %q, want %q", cfg.WorkspacesDir, want)
+	wantWorkspaces := filepath.Join(dir, workspacesSubdir)
+	if cfg.WorkspacesDir != wantWorkspaces {
+		t.Errorf("WorkspacesDir = %q, want %q", cfg.WorkspacesDir, wantWorkspaces)
+	}
+	wantTemplates := filepath.Join(dir, templatesSubdir)
+	if cfg.TemplatesDir != wantTemplates {
+		t.Errorf("TemplatesDir = %q, want %q", cfg.TemplatesDir, wantTemplates)
 	}
 }

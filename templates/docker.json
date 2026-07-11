@@ -1,0 +1,5 @@
+{
+  "name": "docker",
+  "description": "A standalone Docker workspace.",
+  "services": ["docker"]
+}

@@ -57,3 +57,43 @@ require the Service/Runtime layers that don't exist yet, so the Engine
 does not expose them.
 
 Next: Sprint 2 — Template Engine (awaiting approval to start).
+
+## Sprint 2 — Template Engine
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/template`: `Template` domain model (Name, Description,
+  Services) and `Registry`, which loads and validates `*.json`
+  definitions from a directory into memory (`Load`, `Get`, `List`).
+  Rejects missing names, empty service lists, and duplicate names. A
+  missing templates directory loads as an empty catalog rather than
+  failing.
+- `templates/`: six seed Template definitions — one per Service Rules
+  example in `CLAUDE.md` (kubernetes, docker, jenkins, linux, terraform,
+  ansible) — each a minimal single-service template.
+- `internal/config`: added `TemplatesDir`, resolved the same way as
+  `WorkspacesDir` (via `DEVLAB_HOME`), so the Registry never hardcodes
+  a path.
+- `internal/engine.Engine`: now takes a `*template.Registry` alongside
+  the Workspace Manager. `CreateWorkspace(name, description,
+  templateName)` looks up the Template and resolves the Workspace's
+  Services from it — callers no longer pass Services directly. Added
+  `ListTemplates` / `GetTemplate` passthroughs so template discovery is
+  available ahead of the CLI/API. `workspace.Manager.Create` itself is
+  unchanged and still accepts an explicit services list, keeping
+  `internal/workspace` decoupled from `internal/template` (see
+  ADR-0008).
+- Unit tests for `template.Registry` (including one that loads the
+  real `templates/` seed data) and updated `engine` tests covering
+  template resolution and the unknown-template error path.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: validating Template `services` entries against
+a known service-type catalog (there is no such catalog yet — it belongs
+to `internal/service`, starting Sprint 7); Storage/SQLite (Sprint 3);
+Runtimes and Services themselves (Sprints 4-9).
+
+Next: Sprint 3 — Storage (awaiting approval to start).

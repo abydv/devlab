@@ -1,0 +1,5 @@
+{
+  "name": "kubernetes",
+  "description": "A single-node Kubernetes workspace backed by k3d.",
+  "services": ["kubernetes"]
+}

@@ -117,3 +117,43 @@ Workspaces, without changing this manifest format.
 Lifecycle"). Adding unimplemented or no-op lifecycle methods now would
 violate the "no placeholder methods" development standard and jump
 ahead of the approved sprint sequence.
+
+---
+
+## ADR-0008: Template resolution lives in the Engine, not in `internal/workspace`
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/workspace.Manager.Create` keeps its Sprint 1
+signature — it accepts an explicit `services []string` and knows
+nothing about Templates. `internal/engine.Engine.CreateWorkspace`
+resolves the named Template via `template.Registry.Get`, copies its
+`Services`, and passes them down to the Manager.
+
+**Context:** Per `docs/ARCHITECTURE.md`, `internal/workspace` and
+`internal/template` are both used by the Engine but should not depend
+on each other — that dependency direction belongs to the orchestration
+layer. This keeps each package focused (dev standard: "keep packages
+focused") and means the Workspace Manager remains testable without a
+Template Registry.
+
+---
+
+## ADR-0009: Templates do not validate Service names against a catalog
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `template.Registry.Load` validates that a Template has a
+name and at least one non-empty Service entry, but does not check that
+each Service entry is a recognized/implemented service type.
+
+**Context:** No canonical list of service types exists yet —
+`internal/service` (which owns the Service contract and its concrete
+implementations: Kubernetes, Docker, Jenkins, Linux, Terraform,
+Ansible) is not built until Sprints 7-9. Encoding a service-type allow
+list inside `internal/template` now would duplicate knowledge that
+rightfully belongs to `internal/service` and could drift out of sync
+with it. This validation will be added once `internal/service` exists
+to be the source of truth.

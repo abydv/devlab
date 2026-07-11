@@ -11,6 +11,7 @@ import (
 const (
 	envHomeDir       = "DEVLAB_HOME"
 	workspacesSubdir = "workspaces"
+	templatesSubdir  = "templates"
 )
 
 // Config holds the resolved filesystem layout for a DevLab instance.
@@ -19,6 +20,8 @@ type Config struct {
 	HomeDir string
 	// WorkspacesDir is where every Workspace's on-disk data lives.
 	WorkspacesDir string
+	// TemplatesDir is where Template definitions are loaded from.
+	TemplatesDir string
 }
 
 // Load resolves the DevLab configuration.
@@ -44,5 +47,6 @@ func Load() (*Config, error) {
 	return &Config{
 		HomeDir:       home,
 		WorkspacesDir: filepath.Join(home, workspacesSubdir),
+		TemplatesDir:  filepath.Join(home, templatesSubdir),
 	}, nil
 }

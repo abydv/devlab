@@ -1,0 +1,5 @@
+{
+  "name": "ansible",
+  "description": "An Ansible configuration-management workspace.",
+  "services": ["ansible"]
+}
