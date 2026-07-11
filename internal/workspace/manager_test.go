@@ -1,0 +1,152 @@
+package workspace
+
+import (
+	"errors"
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestManagerCreate(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	ws, err := m.Create("my-workspace", "a test workspace", "kubernetes", []string{"jenkins"})
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if ws.ID == "" {
+		t.Error("ID is empty")
+	}
+	if ws.Name != "my-workspace" {
+		t.Errorf("Name = %q, want %q", ws.Name, "my-workspace")
+	}
+	if ws.Status != StatusCreated {
+		t.Errorf("Status = %q, want %q", ws.Status, StatusCreated)
+	}
+	if ws.CreatedAt.IsZero() || ws.UpdatedAt.IsZero() {
+		t.Error("CreatedAt/UpdatedAt not set")
+	}
+
+	for _, sub := range []string{logsDir, dataDir, cacheDir} {
+		info, err := os.Stat(filepath.Join(m.dir(ws.ID), sub))
+		if err != nil {
+			t.Fatalf("stat %s: %v", sub, err)
+		}
+		if !info.IsDir() {
+			t.Errorf("%s is not a directory", sub)
+		}
+	}
+
+	if _, err := os.Stat(filepath.Join(m.dir(ws.ID), manifestFile)); err != nil {
+		t.Fatalf("stat manifest: %v", err)
+	}
+}
+
+func TestManagerCreateRequiresName(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	if _, err := m.Create("  ", "", "", nil); !errors.Is(err, ErrNameRequired) {
+		t.Fatalf("Create() error = %v, want ErrNameRequired", err)
+	}
+}
+
+func TestManagerCreateRejectsDuplicateName(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	if _, err := m.Create("dup", "", "", nil); err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	if _, err := m.Create("DUP", "", "", nil); !errors.Is(err, ErrNameExists) {
+		t.Fatalf("Create() error = %v, want ErrNameExists", err)
+	}
+}
+
+func TestManagerGet(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	created, err := m.Create("my-workspace", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	got, err := m.Get(created.ID)
+	if err != nil {
+		t.Fatalf("Get() error = %v", err)
+	}
+	if got.ID != created.ID || got.Name != created.Name {
+		t.Errorf("Get() = %+v, want %+v", got, created)
+	}
+}
+
+func TestManagerGetNotFound(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	if _, err := m.Get("missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Get() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestManagerListEmptyRootDoesNotExist(t *testing.T) {
+	m := NewManager(filepath.Join(t.TempDir(), "does-not-exist"))
+
+	got, err := m.List()
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(got) != 0 {
+		t.Errorf("List() = %v, want empty", got)
+	}
+}
+
+func TestManagerListOrdersByCreatedAt(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	first, err := m.Create("first", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	second, err := m.Create("second", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	got, err := m.List()
+	if err != nil {
+		t.Fatalf("List() error = %v", err)
+	}
+	if len(got) != 2 {
+		t.Fatalf("List() returned %d workspaces, want 2", len(got))
+	}
+	if got[0].ID != first.ID || got[1].ID != second.ID {
+		t.Errorf("List() order = [%s, %s], want [%s, %s]", got[0].ID, got[1].ID, first.ID, second.ID)
+	}
+}
+
+func TestManagerDelete(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	ws, err := m.Create("to-delete", "", "", nil)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if err := m.Delete(ws.ID); err != nil {
+		t.Fatalf("Delete() error = %v", err)
+	}
+
+	if _, err := m.Get(ws.ID); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Get() after delete error = %v, want ErrNotFound", err)
+	}
+	if _, err := os.Stat(m.dir(ws.ID)); !os.IsNotExist(err) {
+		t.Fatalf("workspace directory still exists after Delete()")
+	}
+}
+
+func TestManagerDeleteNotFound(t *testing.T) {
+	m := NewManager(t.TempDir())
+
+	if err := m.Delete("missing"); !errors.Is(err, ErrNotFound) {
+		t.Fatalf("Delete() error = %v, want ErrNotFound", err)
+	}
+}

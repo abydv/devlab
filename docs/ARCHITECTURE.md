@@ -93,7 +93,7 @@ A Workspace has:
 - CreatedAt
 - UpdatedAt
 
-Each workspace owns, on disk:
+Each workspace owns, on disk, under `<WorkspacesDir>/<id>/`:
 
 ```
 workspace.json
@@ -101,6 +101,12 @@ logs/
 data/
 cache/
 ```
+
+`internal/workspace.Manager` owns this layout (Create/Get/List/Delete).
+`WorkspacesDir` is resolved by `internal/config` (via `DEVLAB_HOME`, see
+ADR-0006) — never hardcoded. `internal/engine.Engine` sits above the
+Manager and is the only thing the future REST API calls into, per the
+CLI → REST API → Engine → Workspace Manager flow.
 
 ## Service Contract
 

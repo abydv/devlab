@@ -6,7 +6,7 @@ previous sprint has been approved.
 | Sprint | Name                    | Status      |
 |--------|-------------------------|-------------|
 | 0      | Architecture            | Complete    |
-| 1      | Workspace Engine        | Not Started |
+| 1      | Workspace Engine        | Complete    |
 | 2      | Template Engine         | Not Started |
 | 3      | Storage                 | Not Started |
 | 4      | Shell Runtime           | Not Started |

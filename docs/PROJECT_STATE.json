@@ -3,14 +3,14 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 0,
-  "currentSprintName": "Architecture",
+  "currentSprint": 1,
+  "currentSprintName": "Workspace Engine",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
   "sprints": [
     { "id": 0, "name": "Architecture", "status": "complete" },
-    { "id": 1, "name": "Workspace Engine", "status": "not_started" },
+    { "id": 1, "name": "Workspace Engine", "status": "complete" },
     { "id": 2, "name": "Template Engine", "status": "not_started" },
     { "id": 3, "name": "Storage", "status": "not_started" },
     { "id": 4, "name": "Shell Runtime", "status": "not_started" },
@@ -39,8 +39,15 @@
     "Create Makefile",
     "Create LICENSE (MIT)",
     "Create README.md",
-    "Verify the repository builds"
+    "Verify the repository builds",
+    "Implement Workspace domain model (internal/workspace)",
+    "Implement disk-backed workspace.Manager (Create/Get/List/Delete)",
+    "Implement internal/engine.Engine orchestration layer",
+    "Implement internal/config for path resolution",
+    "Implement internal/utils.NewID",
+    "Add unit tests for config, utils, workspace, engine",
+    "Verify the repository builds (Sprint 1)"
   ],
-  "pendingApproval": "Sprint 1 - Workspace Engine",
-  "notes": "No application/business logic implemented yet. cmd/devlab/main.go is a minimal entrypoint only, added to satisfy build validation."
+  "pendingApproval": "Sprint 2 - Template Engine",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Workspace persistence is JSON-on-disk (Sprint 1) — SQLite (internal/storage) arrives in Sprint 3. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10."
 }

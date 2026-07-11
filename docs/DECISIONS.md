@@ -80,3 +80,40 @@ actually required.
 
 **Context:** Directly mandated by CLAUDE.md ("Use interfaces only when
 multiple implementations are expected"). Avoids premature abstraction.
+
+---
+
+## ADR-0006: Workspace Manager persists to disk, not SQLite, in Sprint 1
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/workspace.Manager` persists each Workspace as
+`<rootDir>/<id>/workspace.json`, with `logs/`, `data/`, `cache/`
+subdirectories, rather than using SQLite.
+
+**Context:** SQLite persistence is explicitly Sprint 3 ("Storage") on
+the roadmap. The Workspace Rules section of CLAUDE.md separately
+specifies that every workspace owns `workspace.json`, `logs/`, `data/`,
+and `cache/` on disk — this is the on-disk manifest/data layout, not the
+queryable storage layer. Implementing Storage now would jump ahead of
+the approved sprint sequence. `internal/storage` (SQLite) will likely be
+introduced in Sprint 3 as an index/query layer over the same on-disk
+Workspaces, without changing this manifest format.
+
+---
+
+## ADR-0007: Engine does not expose Start/Stop/Reset in Sprint 1
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/engine.Engine` in Sprint 1 only exposes
+`CreateWorkspace`, `GetWorkspace`, `ListWorkspaces`, and
+`DeleteWorkspace`. It does not expose Start/Stop/Reset.
+
+**Context:** Those operations require the Service and Runtime layers
+(Sprints 4-9) and are explicitly the subject of Sprint 10 ("Workspace
+Lifecycle"). Adding unimplemented or no-op lifecycle methods now would
+violate the "no placeholder methods" development standard and jump
+ahead of the approved sprint sequence.
