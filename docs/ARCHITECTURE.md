@@ -194,8 +194,18 @@ or run to completion (missing executable, canceled context).
 are passed as a slice, never interpolated into a shell string — this,
 not a command allow-list, is the injection boundary (ADR-0013).
 
-Planned runtime implementations: Shell Runtime (done), Docker Runtime,
-k3d Runtime.
+`internal/runtime/k3d` is the second implementation. Unlike Shell
+Runtime, it is composed over an injected `runtime.Runtime` (in
+practice a Shell Runtime) rather than calling `os/exec` itself, and its
+`Execute` rejects any `Command` whose `Name` isn't `"k3d"` — a
+deliberate narrowing, in contrast to Shell Runtime's unrestricted
+`Execute` (ADR-0014). It also exposes convenience methods
+(`CreateCluster`, `StartCluster`, `StopCluster`, `DeleteCluster`,
+`ListClusters`, `ClusterExists`) mirroring the Service Rules lifecycle
+wherever a real `k3d` CLI operation exists for it.
+
+Planned runtime implementations: Shell Runtime (done), k3d Runtime
+(done), Docker Runtime.
 
 ## Design Rules
 

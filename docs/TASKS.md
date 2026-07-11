@@ -70,4 +70,17 @@
 
 ## Sprint 5 — k3d Runtime
 
+- [x] Implement the k3d Runtime (`internal/runtime/k3d`), composed
+      over an injected `runtime.Runtime`.
+- [x] `Execute` rejects any command not targeting the `k3d` binary.
+- [x] Add `CreateCluster`/`StartCluster`/`StopCluster`/`DeleteCluster`/
+      `ListClusters`/`ClusterExists` convenience methods.
+- [x] Unit tests using a fake `runtime.Runtime` test double.
+- [x] Verify `ListClusters`' JSON parsing against real `k3d cluster
+      list --output json` output (manual, one-off; not part of the
+      automated suite).
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 6 — Docker Runtime
+
 Not started. Awaiting approval to begin.

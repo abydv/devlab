@@ -250,3 +250,36 @@ capability is confined to one auditable layer — not a restriction on
 which commands that layer may run. Passing `Args` as a slice (never
 building a shell command string) is what actually prevents injection
 and is non-negotiable regardless of any future allow-list decision.
+
+---
+
+## ADR-0014: k3d Runtime is composed over a `runtime.Runtime`, not a second `os/exec` caller
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/runtime/k3d.New(exec runtime.Runtime) *Runtime`
+takes an injected `runtime.Runtime` (in practice, a Shell Runtime) and
+implements `Execute` by delegating to it, rejecting any `Command` whose
+`Name` isn't `"k3d"`. It does not call `os/exec` itself.
+
+**Context:** ADR-0012 anticipated Docker/k3d Runtimes as thin wrappers
+around the same execution primitive Shell Runtime provides, rather than
+each reimplementing process execution. Composition also makes k3d
+Runtime trivially unit-testable with a fake `runtime.Runtime` (see
+`k3d_test.go`), with no dependency on the real `k3d`/Docker binaries
+being installed — important since CI/build environments won't
+universally have them, unlike this development sandbox.
+
+Unlike Shell Runtime (ADR-0013, deliberately unrestricted), k3d
+Runtime's `Execute` DOES reject non-`k3d` commands. This is not a
+contradiction: Shell Runtime's job is general-purpose execution, so
+restricting it would work against its purpose; k3d Runtime's entire
+purpose is a narrow, single-binary boundary, so the restriction is the
+point. Its convenience methods (`CreateCluster`, `StartCluster`,
+`StopCluster`, `DeleteCluster`, `ListClusters`, `ClusterExists`) map to
+the Service Rules lifecycle only where a real `k3d` CLI command exists
+for it — `Reset` (no native k3d equivalent; will be a Service-layer
+composition in Sprint 10) and `Logs` (belongs to Docker Runtime,
+Sprint 6, since k3d clusters run as Docker containers) are deliberately
+not included.

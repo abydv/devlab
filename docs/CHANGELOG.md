@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 5 — k3d Runtime
+
+- Add the k3d Runtime (`internal/runtime/k3d`), composed over an
+  injected `runtime.Runtime`; `Execute` rejects non-`k3d` commands.
+- Add `CreateCluster`/`StartCluster`/`StopCluster`/`DeleteCluster`/
+  `ListClusters`/`ClusterExists` convenience methods.
+- Add unit tests using a fake `runtime.Runtime`, including a fixture
+  captured from a real `k3d cluster list --output json` response.
+
 ### Sprint 4 — Shell Runtime
 
 - Add the shared `Runtime` contract (`internal/runtime`):

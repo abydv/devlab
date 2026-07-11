@@ -173,3 +173,44 @@ yet consumed library package, same as `internal/storage` was before
 Sprint 3 wired it into `workspace.Manager`.
 
 Next: Sprint 5 — k3d Runtime (awaiting approval to start).
+
+## Sprint 5 — k3d Runtime
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/runtime/k3d`: the k3d Runtime, composed over an injected
+  `runtime.Runtime` (typically Shell Runtime). Its `Execute` rejects
+  any command whose `Name` isn't `"k3d"` — unlike Shell Runtime's
+  deliberately unrestricted `Execute` (ADR-0013), k3d Runtime's whole
+  purpose is a narrower, single-binary boundary.
+- Convenience methods mirroring the Service Rules lifecycle where a
+  real k3d CLI operation exists for it: `CreateCluster`, `StartCluster`,
+  `StopCluster`, `DeleteCluster`, `ListClusters`, `ClusterExists`.
+  `Reset` and `Logs` are intentionally not included — k3d has no
+  native "reset cluster" operation (that will be a composition at the
+  Service layer, Sprint 7) and no "cluster logs" command (container
+  logs belong to Docker Runtime, Sprint 6).
+- Unit tests use a fake `runtime.Runtime` test double — fast,
+  deterministic, and independent of whether `k3d`/Docker are actually
+  installed.
+- `k3d` and `docker` happen to be available in this sandbox. Used them
+  for one-off manual verification only (not part of the automated
+  suite): created a real cluster, captured its actual
+  `k3d cluster list --output json` response, confirmed `ListClusters`'
+  minimal `{name}` unmarshal target matches the real (much larger)
+  schema and ignores the rest correctly, then deleted the cluster. The
+  captured response is embedded in `k3d_test.go` as a fixture so the
+  automated tests stay grounded in real output without requiring the
+  binaries to be present.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: Docker Runtime (Sprint 6); wiring k3d Runtime
+into a Service (`internal/service` doesn't exist until Sprint 7); any
+`kubectl`-level interaction with a cluster's contents (Kubernetes
+Service's concern, Sprint 7) — k3d Runtime only manages cluster
+lifecycle via the `k3d` binary itself.
+
+Next: Sprint 6 — Docker Runtime (awaiting approval to start).

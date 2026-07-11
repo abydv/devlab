@@ -10,7 +10,7 @@ previous sprint has been approved.
 | 2      | Template Engine         | Complete    |
 | 3      | Storage                 | Complete    |
 | 4      | Shell Runtime           | Complete    |
-| 5      | k3d Runtime             | Not Started |
+| 5      | k3d Runtime             | Complete    |
 | 6      | Docker Runtime          | Not Started |
 | 7      | Kubernetes Service      | Not Started |
 | 8      | Docker Service          | Not Started |
