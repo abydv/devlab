@@ -283,3 +283,37 @@ for it — `Reset` (no native k3d equivalent; will be a Service-layer
 composition in Sprint 10) and `Logs` (belongs to Docker Runtime,
 Sprint 6, since k3d clusters run as Docker containers) are deliberately
 not included.
+
+---
+
+## ADR-0015: Docker Runtime mirrors k3d Runtime's shape; errors classified from real CLI stderr text
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/runtime/docker.Runtime` follows the same shape
+as k3d Runtime (ADR-0014): composed over an injected `runtime.Runtime`,
+`Execute` rejects any `Command` whose `Name` isn't `"docker"`. Unlike
+k3d Runtime, every Service Rules lifecycle verb (Create, Start, Stop,
+Delete, Status, Logs) maps onto a real `docker` subcommand, so all six
+are implemented as convenience methods (`CreateContainer`,
+`StartContainer`, `StopContainer`, `RemoveContainer`,
+`ContainerStatus`, `ContainerLogs`), plus `ContainerExists`. Not-found
+and already-exists conditions are reported as `ErrNotFound` /
+`ErrAlreadyExists`, classified by matching known substrings in
+`docker`'s own stderr (`"No such container"`, `"no such object"`,
+`"already in use by container"`).
+
+**Context:** These exact strings were captured from a live `docker`
+(Engine 29.6.1) instance available in this sandbox — including a full
+manual create → start → inspect → logs → stop → rm lifecycle and a
+deliberate duplicate-name conflict — rather than assumed from
+documentation, which can drift from actual CLI output across versions.
+`docker rm -f` on an already-absent container was confirmed to exit 0,
+so `RemoveContainer` does not need `ErrNotFound` handling — it is
+naturally idempotent. This string-matching approach is inherently
+version-sensitive (a future `docker` release could reword its errors);
+the alternative — the Docker Engine SDK talking to the daemon socket
+directly — would sidestep that fragility but was rejected to stay
+consistent with ADR-0012's CLI-invocation design, shared with Shell and
+k3d Runtimes.

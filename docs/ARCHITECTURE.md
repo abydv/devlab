@@ -204,8 +204,17 @@ deliberate narrowing, in contrast to Shell Runtime's unrestricted
 `ListClusters`, `ClusterExists`) mirroring the Service Rules lifecycle
 wherever a real `k3d` CLI operation exists for it.
 
-Planned runtime implementations: Shell Runtime (done), k3d Runtime
-(done), Docker Runtime.
+`internal/runtime/docker` is the third implementation, shaped like k3d
+Runtime (composed over an injected `runtime.Runtime`, `Execute`
+restricted to the `docker` binary), but — since every Service Rules
+verb has a real `docker` equivalent — exposing the full set:
+`CreateContainer`, `StartContainer`, `StopContainer`,
+`RemoveContainer`, `ContainerStatus`, `ContainerExists`,
+`ContainerLogs`, with `ErrNotFound`/`ErrAlreadyExists` classified from
+`docker`'s own CLI error text (ADR-0015).
+
+All three planned Runtime implementations are complete: Shell Runtime,
+k3d Runtime, Docker Runtime.
 
 ## Design Rules
 

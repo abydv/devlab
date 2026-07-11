@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 6 — Docker Runtime
+
+- Add the Docker Runtime (`internal/runtime/docker`), composed over an
+  injected `runtime.Runtime`; `Execute` rejects non-`docker` commands.
+- Add `CreateContainer`/`StartContainer`/`StopContainer`/
+  `RemoveContainer`/`ContainerStatus`/`ContainerExists`/
+  `ContainerLogs`, plus `ErrNotFound`/`ErrAlreadyExists`.
+- Add unit tests using a fake `runtime.Runtime`, with error-text
+  fixtures captured from a real `docker` instance.
+
 ### Sprint 5 — k3d Runtime
 
 - Add the k3d Runtime (`internal/runtime/k3d`), composed over an

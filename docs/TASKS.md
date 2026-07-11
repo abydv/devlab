@@ -83,4 +83,19 @@
 
 ## Sprint 6 — Docker Runtime
 
+- [x] Implement the Docker Runtime (`internal/runtime/docker`),
+      composed over an injected `runtime.Runtime`.
+- [x] `Execute` rejects any command not targeting the `docker` binary.
+- [x] Add `CreateContainer`/`StartContainer`/`StopContainer`/
+      `RemoveContainer`/`ContainerStatus`/`ContainerExists`/
+      `ContainerLogs`.
+- [x] Add `ErrNotFound`/`ErrAlreadyExists`, classified from real
+      `docker` CLI stderr text.
+- [x] Manually verify command shapes and error text against a real
+      `docker` instance (one-off; not part of the automated suite).
+- [x] Unit tests using a fake `runtime.Runtime` test double.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 7 — Kubernetes Service
+
 Not started. Awaiting approval to begin.

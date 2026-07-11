@@ -11,7 +11,7 @@ previous sprint has been approved.
 | 3      | Storage                 | Complete    |
 | 4      | Shell Runtime           | Complete    |
 | 5      | k3d Runtime             | Complete    |
-| 6      | Docker Runtime          | Not Started |
+| 6      | Docker Runtime          | Complete    |
 | 7      | Kubernetes Service      | Not Started |
 | 8      | Docker Service          | Not Started |
 | 9      | Jenkins Service         | Not Started |

@@ -214,3 +214,46 @@ Service's concern, Sprint 7) — k3d Runtime only manages cluster
 lifecycle via the `k3d` binary itself.
 
 Next: Sprint 6 — Docker Runtime (awaiting approval to start).
+
+## Sprint 6 — Docker Runtime
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/runtime/docker`: the third `runtime.Runtime`
+  implementation, mirroring k3d Runtime's design — composed over an
+  injected `runtime.Runtime`, `Execute` rejects any command not
+  targeting the `docker` binary.
+- Container lifecycle methods mapping directly onto the Service Rules
+  vocabulary, since — unlike k3d — every one of Create/Start/Stop/
+  Delete/Status/Logs has a real `docker` CLI equivalent:
+  `CreateContainer(spec)`, `StartContainer`, `StopContainer`,
+  `RemoveContainer` (idempotent — real `docker rm -f` on an absent
+  container exits 0), `ContainerStatus`, `ContainerExists`,
+  `ContainerLogs`. `ContainerSpec` covers name, image, env, port
+  mappings, volume mappings, and an optional command override — the
+  minimum a Docker- or Jenkins-backed workspace service will need to
+  publish a UI port and mount the workspace's `data/` directory.
+- `ErrNotFound` / `ErrAlreadyExists` sentinels, classified from
+  `docker`'s own stderr text (`"No such container"` / `"no such
+  object"` / `"already in use by container"`) — verified against a
+  real `docker` (Engine 29.6.1) instance available in this sandbox,
+  not guessed; the exact strings are embedded as test fixtures.
+- Before writing the Go code, ran a full manual lifecycle against real
+  `docker` (create → start → inspect → logs → stop → rm -f, plus a
+  duplicate-name conflict) to confirm the command shapes and error text
+  this design depends on, then cleaned up every container it created.
+- Unit tests use a fake `runtime.Runtime` double — fast and independent
+  of Docker actually being installed.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: wiring Docker Runtime into a Service
+(`internal/service` doesn't exist until Sprint 7); a true multiplexed
+stdout/stderr log stream (`ContainerLogs` concatenates the two captured
+buffers stdout-then-stderr, not chronologically interleaved — a known
+simplification, not a live tail).
+
+All three Runtimes (Shell, k3d, Docker) are now implemented. Next:
+Sprint 7 — Kubernetes Service (awaiting approval to start).

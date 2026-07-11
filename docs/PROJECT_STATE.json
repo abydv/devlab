@@ -3,8 +3,8 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 5,
-  "currentSprintName": "k3d Runtime",
+  "currentSprint": 6,
+  "currentSprintName": "Docker Runtime",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
@@ -15,7 +15,7 @@
     { "id": 3, "name": "Storage", "status": "complete" },
     { "id": 4, "name": "Shell Runtime", "status": "complete" },
     { "id": 5, "name": "k3d Runtime", "status": "complete" },
-    { "id": 6, "name": "Docker Runtime", "status": "not_started" },
+    { "id": 6, "name": "Docker Runtime", "status": "complete" },
     { "id": 7, "name": "Kubernetes Service", "status": "not_started" },
     { "id": 8, "name": "Docker Service", "status": "not_started" },
     { "id": 9, "name": "Jenkins Service", "status": "not_started" },
@@ -72,8 +72,15 @@
     "Add CreateCluster/StartCluster/StopCluster/DeleteCluster/ListClusters/ClusterExists",
     "Add unit tests for internal/runtime/k3d using a fake runtime.Runtime",
     "Manually verify ListClusters JSON parsing against a real k3d cluster (one-off, not automated)",
-    "Verify the repository builds (Sprint 5)"
+    "Verify the repository builds (Sprint 5)",
+    "Implement Docker Runtime (internal/runtime/docker) composed over runtime.Runtime",
+    "Constrain Docker Runtime Execute to the docker binary only",
+    "Add CreateContainer/StartContainer/StopContainer/RemoveContainer/ContainerStatus/ContainerExists/ContainerLogs",
+    "Add ErrNotFound/ErrAlreadyExists classified from real docker CLI stderr text",
+    "Manually verify command shapes and error text against a real docker instance (one-off, not automated)",
+    "Add unit tests for internal/runtime/docker using a fake runtime.Runtime",
+    "Verify the repository builds (Sprint 6)"
   ],
-  "pendingApproval": "Sprint 6 - Docker Runtime",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7. workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011). internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (see ADR-0012); no command allow-list on Shell Runtime, injection prevented structurally via argv slices (see ADR-0013). k3d Runtime (internal/runtime/k3d) is composed over an injected runtime.Runtime and, unlike Shell Runtime, restricts Execute to the k3d binary only (see ADR-0014). Neither Runtime is wired into a Service yet — internal/service does not exist until Sprint 7. k3d and docker happen to be installed in this sandbox but automated tests do not depend on them (fake runtime.Runtime used instead)."
+  "pendingApproval": "Sprint 7 - Kubernetes Service",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7, which is next. workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011). internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (see ADR-0012); no command allow-list on Shell Runtime, injection prevented structurally via argv slices (see ADR-0013). k3d Runtime and Docker Runtime are both composed over an injected runtime.Runtime and, unlike Shell Runtime, restrict Execute to their own single binary (see ADR-0014, ADR-0015). All three planned Runtimes (Shell, k3d, Docker) are now implemented and tested but not yet wired into a Service — internal/service does not exist until Sprint 7. k3d and docker happen to be installed in this sandbox but automated tests do not depend on them (fake runtime.Runtime used instead)."
 }
