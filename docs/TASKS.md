@@ -58,4 +58,16 @@
 
 ## Sprint 4 — Shell Runtime
 
+- [x] Define the shared `Runtime` interface and `Command`/`Result`
+      types (`internal/runtime`).
+- [x] Implement the Shell Runtime (`internal/runtime/shell`) backed by
+      `os/exec.CommandContext`, args passed as a slice (no shell
+      interpolation).
+- [x] Distinguish context cancellation from a normal nonzero exit code.
+- [x] Unit tests: stdout/stderr, exit codes, working directory, env
+      vars, missing executable, context cancellation.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 5 — k3d Runtime
+
 Not started. Awaiting approval to begin.

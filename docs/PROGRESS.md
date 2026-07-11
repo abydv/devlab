@@ -134,3 +134,42 @@ data, not runtime-created records); Runtimes and Services (Sprints
 4-9).
 
 Next: Sprint 4 — Shell Runtime (awaiting approval to start).
+
+## Sprint 4 — Shell Runtime
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/runtime`: the shared `Runtime` contract
+  (`Execute(ctx, Command) (*Result, error)`) that every Runtime
+  implementation satisfies — justified now because three concrete
+  implementations are explicitly planned (Shell, Docker, k3d), per the
+  "use interfaces only when multiple implementations are expected"
+  standard. `Command` (Name, Args, Dir, Env) and `Result` (ExitCode,
+  Stdout, Stderr) are the shared vocabulary.
+- `internal/runtime/shell`: the Shell Runtime, the first concrete
+  implementation, backed directly by `os/exec.CommandContext`. Args are
+  passed as a slice, never interpolated into a shell string, so shell
+  metacharacters carry no special meaning — this is the security
+  boundary against injection, not an allow-list (DevLab intentionally
+  does not restrict which commands a Runtime may run; the architectural
+  boundary is that only a Runtime may run them at all).
+- Found and fixed a real bug during testing: `exec.CommandContext`
+  reports a context-canceled/timed-out process as a normal
+  `*exec.ExitError` ("signal: killed"), which would otherwise be
+  misreported as an ordinary nonzero exit instead of an execution
+  error. `Execute` now checks `ctx.Err()` first to distinguish the two.
+- Unit tests covering stdout/stderr capture, exit codes, working
+  directory, environment variables, missing executables, and context
+  cancellation.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: Docker Runtime and k3d Runtime (Sprints 5-6);
+wiring any Runtime into a Service (`internal/service` doesn't exist
+until Sprint 7) — Shell Runtime is a fully functional, tested, but not
+yet consumed library package, same as `internal/storage` was before
+Sprint 3 wired it into `workspace.Manager`.
+
+Next: Sprint 5 — k3d Runtime (awaiting approval to start).

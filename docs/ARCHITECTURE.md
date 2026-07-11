@@ -172,8 +172,30 @@ Terraform, Ansible.
 Only the Runtime layer executes operating system commands. Services must
 never shell out directly.
 
-Planned runtime implementations: Shell Runtime, Docker Runtime, k3d
-Runtime.
+`internal/runtime` defines the single interface every Runtime
+implementation satisfies:
+
+```go
+type Runtime interface {
+    Execute(ctx context.Context, cmd Command) (*Result, error)
+}
+```
+
+`Command` (`Name`, `Args`, `Dir`, `Env`) and `Result` (`ExitCode`,
+`Stdout`, `Stderr`) are intentionally generic — Docker and k3d are
+themselves invoked as CLI binaries, so "run a container" and "run a
+shell command" are both just "execute a named program with arguments"
+at this layer (ADR-0012). A non-zero `ExitCode` is not a Go `error`;
+`Execute` returns an error only when the command could not be started
+or run to completion (missing executable, canceled context).
+
+`internal/runtime/shell` is the first implementation, invoking
+`exec.CommandContext(ctx, cmd.Name, cmd.Args...)` directly. Arguments
+are passed as a slice, never interpolated into a shell string — this,
+not a command allow-list, is the injection boundary (ADR-0013).
+
+Planned runtime implementations: Shell Runtime (done), Docker Runtime,
+k3d Runtime.
 
 ## Design Rules
 

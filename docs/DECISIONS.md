@@ -202,3 +202,51 @@ sources of truth for a Workspace's full data (a common source of
 drift bugs); SQLite's role stays scoped to what it's good at —
 constraint enforcement and ordered/filtered queries — which is exactly
 what `Create`'s uniqueness check and `List`'s ordering need.
+
+---
+
+## ADR-0012: A single `Runtime` interface (`Execute(ctx, Command)`) for Shell, Docker, and k3d
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/runtime` defines one interface,
+`Runtime.Execute(ctx context.Context, cmd Command) (*Result, error)`,
+that Shell (Sprint 4), Docker (Sprint 6), and k3d (Sprint 5) Runtimes
+all implement. `Command` is generic (`Name`, `Args`, `Dir`, `Env`); it
+is not specialized per backend (e.g. no `ContainerName` field).
+
+**Context:** Docker and k3d are themselves invoked as CLI binaries
+(`docker ...`, `k3d ...`/`kubectl ...`); at the OS-command level, "run
+a container" and "run a shell script" are both just "execute a named
+program with arguments." A single generic contract lets Docker/k3d
+Runtimes be implemented as thin, constrained wrappers around the same
+execution primitive Shell Runtime already provides — Service
+implementations only need to hold a `runtime.Runtime`, not a
+type-specific interface per backend. CLAUDE.md's "use interfaces only
+when multiple implementations are expected" is satisfied directly:
+three concrete implementations are named in the roadmap.
+
+---
+
+## ADR-0013: No command allow-list; injection is prevented structurally
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/runtime/shell.Runtime` does not restrict which
+executables or arguments may run. It invokes
+`exec.CommandContext(ctx, cmd.Name, cmd.Args...)` directly — arguments
+are passed as a slice and never interpolated into a shell string, so
+shell metacharacters in `Args` carry no special meaning.
+
+**Context:** DevLab's entire purpose is running arbitrary DevOps
+tooling (`kubectl`, `docker`, `terraform`, `ansible`, ...) on the
+user's own machine on their behalf, so a fixed allow-list would work
+against the tool's purpose and give a false sense of restriction. The
+actual security boundary CLAUDE.md mandates is architectural — "only
+the Runtime may execute operating system commands," i.e. the
+capability is confined to one auditable layer — not a restriction on
+which commands that layer may run. Passing `Args` as a slice (never
+building a shell command string) is what actually prevents injection
+and is non-negotiable regardless of any future allow-list decision.

@@ -3,8 +3,8 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 3,
-  "currentSprintName": "Storage",
+  "currentSprint": 4,
+  "currentSprintName": "Shell Runtime",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
@@ -13,7 +13,7 @@
     { "id": 1, "name": "Workspace Engine", "status": "complete" },
     { "id": 2, "name": "Template Engine", "status": "complete" },
     { "id": 3, "name": "Storage", "status": "complete" },
-    { "id": 4, "name": "Shell Runtime", "status": "not_started" },
+    { "id": 4, "name": "Shell Runtime", "status": "complete" },
     { "id": 5, "name": "k3d Runtime", "status": "not_started" },
     { "id": 6, "name": "Docker Runtime", "status": "not_started" },
     { "id": 7, "name": "Kubernetes Service", "status": "not_started" },
@@ -61,8 +61,13 @@
     "Keep index in sync with workspace.json on Create/Delete, with rollback",
     "Add modernc.org/sqlite dependency; go mod tidy",
     "Add unit tests for internal/storage; update workspace/engine tests to use real SQLite",
-    "Verify the repository builds (Sprint 3)"
+    "Verify the repository builds (Sprint 3)",
+    "Define shared Runtime interface and Command/Result types (internal/runtime)",
+    "Implement Shell Runtime (internal/runtime/shell) backed by os/exec.CommandContext",
+    "Fix context-cancellation vs nonzero-exit-code bug found during testing",
+    "Add unit tests for internal/runtime/shell",
+    "Verify the repository builds (Sprint 4)"
   ],
-  "pendingApproval": "Sprint 4 - Shell Runtime",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7. workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011)."
+  "pendingApproval": "Sprint 5 - k3d Runtime",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — internal/service does not exist until Sprint 7. workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011). internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (see ADR-0012); no command allow-list, injection prevented structurally via argv slices (see ADR-0013). Shell Runtime is implemented and tested but not yet consumed — internal/service does not exist until Sprint 7."
 }

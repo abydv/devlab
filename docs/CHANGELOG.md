@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 4 — Shell Runtime
+
+- Add the shared `Runtime` contract (`internal/runtime`):
+  `Execute(ctx, Command) (*Result, error)`.
+- Add the Shell Runtime (`internal/runtime/shell`), backed by
+  `os/exec.CommandContext`; arguments are never shell-interpolated.
+- Fix a context-cancellation bug found during testing:
+  `exec.CommandContext` reports a killed process as a normal
+  `*exec.ExitError`, which `Execute` now correctly distinguishes from
+  a genuine nonzero exit by checking `ctx.Err()` first.
+- Add unit tests covering stdout/stderr, exit codes, working
+  directory, env vars, missing executables, and cancellation.
+
 ### Sprint 3 — Storage
 
 - Add `internal/storage.Open`: domain-agnostic SQLite connection opener
