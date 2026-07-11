@@ -6,7 +6,6 @@
 *.dll
 *.so
 *.dylib
-devlab
 
 # Go
 *.test
