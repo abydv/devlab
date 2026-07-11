@@ -1,0 +1,135 @@
+# DevLab Architecture
+
+## Mission
+
+DevLab is a self-hosted Personal DevOps Workspace Platform for Ubuntu
+Desktop. It is built for personal use first, but the architecture must
+support future multi-user expansion without a redesign.
+
+## Core Principles
+
+- Everything is a **Workspace**.
+- A Workspace contains one or more **Services**.
+- Services use a **Runtime**.
+- Only the Runtime may execute operating system commands.
+- The **Engine** orchestrates Workspaces.
+- The Frontend never contains business logic.
+
+## System Flow
+
+```
+CLI → REST API → Engine → Workspace Manager → Services → Runtime → Docker / k3d / Shell
+```
+
+- **CLI**: user-facing command entrypoint (`cmd/devlab`).
+- **REST API**: HTTP surface (Fiber) exposed to the CLI and the web
+  frontend. Contains no business logic — it validates and delegates.
+- **Engine**: orchestrates workspace lifecycle operations and coordinates
+  the Workspace Manager.
+- **Workspace Manager**: owns Workspace state and delegates operations to
+  the Services attached to a Workspace.
+- **Services**: implement a fixed lifecycle contract (Create, Start, Stop,
+  Reset, Delete, Status, Logs). Services never execute OS commands
+  directly — they call into a Runtime.
+- **Runtime**: the only layer permitted to execute operating system
+  commands (via Shell, Docker, or k3d).
+
+## Tech Stack
+
+**Backend**
+- Go
+- Fiber (HTTP framework)
+- SQLite (persistence)
+
+**Frontend**
+- Next.js
+- React
+- TypeScript
+- TailwindCSS
+- shadcn/ui
+
+**Runtime**
+- Docker
+- k3d
+
+## Repository Structure
+
+```
+cmd/devlab/          CLI entrypoint / process bootstrap
+internal/engine/     Workspace orchestration
+internal/workspace/  Workspace domain model and manager
+internal/service/    Service lifecycle contract and implementations
+internal/runtime/    Runtime contract and implementations
+  shell/             Shell runtime
+  docker/            Docker runtime
+  k3d/                k3d runtime
+internal/template/   Workspace/service templates
+internal/storage/    SQLite persistence layer
+internal/config/     Configuration loading
+internal/utils/      Shared internal utilities
+pkg/                 Code intended for external/reusable consumption
+api/                 REST API layer (Fiber handlers, routes, DTOs)
+web/                 Next.js frontend application
+templates/           On-disk template definitions (data, not code)
+workspaces/          Runtime workspace data (workspace.json, logs/, data/, cache/)
+scripts/             Developer and operational scripts
+docs/                Project documentation (source of truth)
+```
+
+`internal/` packages are private to the module. `pkg/` is reserved for
+code that is safe and intended for external reuse. Business logic lives
+in `internal/`; `api/` and `web/` are thin delivery layers.
+
+## Workspace Model
+
+A Workspace has:
+
+- ID
+- Name
+- Description
+- Template
+- Services
+- Status
+- CreatedAt
+- UpdatedAt
+
+Each workspace owns, on disk:
+
+```
+workspace.json
+logs/
+data/
+cache/
+```
+
+## Service Contract
+
+Every Service implementation provides:
+
+- `Create`
+- `Start`
+- `Stop`
+- `Reset`
+- `Delete`
+- `Status`
+- `Logs`
+
+Planned service implementations: Kubernetes, Docker, Jenkins, Linux,
+Terraform, Ansible.
+
+## Runtime Contract
+
+Only the Runtime layer executes operating system commands. Services must
+never shell out directly.
+
+Planned runtime implementations: Shell Runtime, Docker Runtime, k3d
+Runtime.
+
+## Design Rules
+
+- Use interfaces only when multiple implementations are expected
+  (e.g. `Service`, `Runtime`).
+- Prefer composition over inheritance.
+- Keep packages focused on a single responsibility.
+- No hardcoded paths — configuration is sourced through `internal/config`.
+- Never redesign this architecture without explicit approval.

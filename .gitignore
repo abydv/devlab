@@ -1,0 +1,48 @@
+# Binaries
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+devlab
+
+# Go
+*.test
+*.out
+go.work
+go.work.sum
+
+# SQLite
+*.db
+*.sqlite
+*.sqlite3
+
+# Runtime data (workspace instances are user data, not source)
+/workspaces/*
+!/workspaces/.gitkeep
+
+# Frontend
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
+web/*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Logs
+*.log
