@@ -115,4 +115,20 @@
 
 ## Sprint 8 — Docker Service
 
+- [x] Implement the Docker Service (`internal/service/docker`), a
+      single container backed by `docker.Runtime` and a reused
+      `ContainerSpec`.
+- [x] Map `docker inspect` state to `service.Status`, including the
+      distinct `created` state.
+- [x] `Reset` composes `ContainerExists`/`RemoveContainer`/
+      `CreateContainer`.
+- [x] Unit tests composing a real `docker.Runtime` over a fake
+      `runtime.Runtime`.
+- [x] Manually verify the full lifecycle end-to-end against real
+      `docker` (one-off; not part of the automated suite); confirm no
+      leftover containers.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 9 — Jenkins Service
+
 Not started. Awaiting approval to begin.

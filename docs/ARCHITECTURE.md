@@ -183,8 +183,16 @@ Docker containers) — a Service is not limited to one Runtime instance
 (ADR-0016). `Reset` composes `ClusterExists`/`DeleteCluster`/
 `CreateCluster` since k3d has no native reset operation.
 
-Planned service implementations: Kubernetes (done), Docker, Jenkins,
-Linux, Terraform, Ansible.
+`internal/service/docker` is the second implementation: a single
+container, needing only `*docker.Runtime` since every Service Rules
+verb already has a direct Docker Runtime method. It takes a
+`docker.ContainerSpec` directly as its construction parameter rather
+than a parallel struct (ADR-0018). Its `Status` mapping is the first to
+use `service.StatusCreated`, since a Docker container (unlike a k3d
+cluster) genuinely has a distinct "created but not started" state.
+
+Planned service implementations: Kubernetes (done), Docker (done),
+Jenkins, Linux, Terraform, Ansible.
 
 ## Runtime Contract
 

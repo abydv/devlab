@@ -365,3 +365,35 @@ capability that Runtime should own, adding it there (not working around
 its absence in the consumer) is the correct layering and was already
 anticipated as normal by the Sprint 4→5 precedent (Shell Runtime
 needed no such extension, but the pattern was established).
+
+---
+
+## ADR-0018: Docker Service reuses `docker.ContainerSpec` directly; `service.StatusCreated` is now load-bearing
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `internal/service/docker.Service` takes a
+`dockerruntime.ContainerSpec` (from Sprint 6) as its constructor
+argument rather than redeclaring name/image/env/ports/volumes as its
+own fields — a Docker Service *is* a single container, so its
+construction parameters should be exactly a `ContainerSpec`, not a
+parallel struct that would drift out of sync. Unlike Kubernetes
+Service (one Runtime holding both lifecycle and introspection duties
+split across two Runtime types), Docker Service needs only
+`*docker.Runtime`, since every Service Rules verb already has a direct
+1:1 Docker Runtime method.
+
+`Status` maps `"created"` to `service.StatusCreated` — the first
+Service to actually reach that branch. Confirmed live: `docker create`
+without `docker start` leaves a container in a genuine, observable
+`"created"` state, unlike a k3d cluster (Kubernetes Service, ADR-0016),
+which is always `"running"` immediately after `k3d cluster create`.
+
+**Context:** Verified end-to-end against a real `docker` (Engine
+29.6.1) instance in this sandbox before finalizing: Create left the
+container in `"created"`, Start moved it to `"running"`, Stop to
+`"exited"` (mapped to `service.StatusStopped`), and Reset correctly
+returned it to `"created"` (recreate does not imply start). This
+grounds the status mapping in observed behavior, not assumption, same
+practice as ADR-0015 and ADR-0016.

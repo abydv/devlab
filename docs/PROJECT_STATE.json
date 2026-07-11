@@ -3,8 +3,8 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 7,
-  "currentSprintName": "Kubernetes Service",
+  "currentSprint": 8,
+  "currentSprintName": "Docker Service",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
@@ -17,7 +17,7 @@
     { "id": 5, "name": "k3d Runtime", "status": "complete" },
     { "id": 6, "name": "Docker Runtime", "status": "complete" },
     { "id": 7, "name": "Kubernetes Service", "status": "complete" },
-    { "id": 8, "name": "Docker Service", "status": "not_started" },
+    { "id": 8, "name": "Docker Service", "status": "complete" },
     { "id": 9, "name": "Jenkins Service", "status": "not_started" },
     { "id": 10, "name": "Workspace Lifecycle", "status": "not_started" },
     { "id": 11, "name": "REST API", "status": "not_started" },
@@ -85,8 +85,14 @@
     "Extend internal/runtime/k3d with ErrAlreadyExists and GetKubeconfig",
     "Add unit tests composing real k3d.Runtime/docker.Runtime over a shared fake runtime.Runtime",
     "Manually verify full Kubernetes Service lifecycle against real k3d/docker (one-off, not automated)",
-    "Verify the repository builds (Sprint 7)"
+    "Verify the repository builds (Sprint 7)",
+    "Implement Docker Service (internal/service/docker) backed directly by docker.Runtime",
+    "Reuse dockerruntime.ContainerSpec as the Docker Service construction parameter",
+    "Map docker inspect state to service.Status, including the distinct created state",
+    "Add unit tests composing a real docker.Runtime over a fake runtime.Runtime",
+    "Manually verify full Docker Service lifecycle against real docker (one-off, not automated)",
+    "Verify the repository builds (Sprint 8)"
   ],
-  "pendingApproval": "Sprint 8 - Docker Service",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — still true even with Kubernetes Service done, since one Service alone isn't a catalog; revisit after Sprint 9 (Jenkins Service). workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011). internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (see ADR-0012); no command allow-list on Shell Runtime, injection prevented structurally via argv slices (see ADR-0013). k3d Runtime and Docker Runtime are both composed over an injected runtime.Runtime and, unlike Shell Runtime, restrict Execute to their own single binary (see ADR-0014, ADR-0015). internal/service.Service (Create/Start/Stop/Reset/Delete/Status/Logs) is the shared contract for Kubernetes/Docker/Jenkins Services, with its own Status type decoupled from workspace.Status. Kubernetes Service (internal/service/kubernetes) is the first implementation, using both k3d.Runtime and docker.Runtime (see ADR-0016); k3d Runtime gained ErrAlreadyExists/GetKubeconfig as this sprint's consumer needed them (see ADR-0017). Kubernetes Service is not wired into the Engine/Workspace yet — that's Sprint 10 (Workspace Lifecycle). k3d and docker happen to be installed in this sandbox; automated tests use fakes, but the full real lifecycle was manually verified end-to-end."
+  "pendingApproval": "Sprint 9 - Jenkins Service",
+  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI wiring is not part of any completed sprint yet. Engine intentionally does not expose Start/Stop/Reset yet (see ADR-0007); that is Sprint 10. engine.New takes (*workspace.Manager, *template.Registry); CreateWorkspace takes (name, description, templateName) and resolves Services from the Template (see ADR-0008). Template Service entries are not yet validated against a service-type catalog (see ADR-0009) — still true with Kubernetes+Docker Services done, since two Services still aren't a full catalog; revisit after Sprint 9 (Jenkins Service). workspace.NewManager now takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011). internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (see ADR-0012); no command allow-list on Shell Runtime, injection prevented structurally via argv slices (see ADR-0013). k3d Runtime and Docker Runtime are both composed over an injected runtime.Runtime and, unlike Shell Runtime, restrict Execute to their own single binary (see ADR-0014, ADR-0015). internal/service.Service (Create/Start/Stop/Reset/Delete/Status/Logs) is the shared contract for Kubernetes/Docker/Jenkins Services, with its own Status type decoupled from workspace.Status. Kubernetes Service (internal/service/kubernetes) uses both k3d.Runtime and docker.Runtime (see ADR-0016); k3d Runtime gained ErrAlreadyExists/GetKubeconfig as that sprint's consumer needed them (see ADR-0017). Docker Service (internal/service/docker) uses only docker.Runtime and reuses ContainerSpec directly, introducing service.StatusCreated as a genuinely reachable state (see ADR-0018). Neither Service is wired into the Engine/Workspace yet — that's Sprint 10 (Workspace Lifecycle). k3d and docker happen to be installed in this sandbox; automated tests use fakes, but full real lifecycles were manually verified end-to-end for both Services."
 }

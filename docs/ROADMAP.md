@@ -13,7 +13,7 @@ previous sprint has been approved.
 | 5      | k3d Runtime             | Complete    |
 | 6      | Docker Runtime          | Complete    |
 | 7      | Kubernetes Service      | Complete    |
-| 8      | Docker Service          | Not Started |
+| 8      | Docker Service          | Complete    |
 | 9      | Jenkins Service         | Not Started |
 | 10     | Workspace Lifecycle     | Not Started |
 | 11     | REST API                | Not Started |

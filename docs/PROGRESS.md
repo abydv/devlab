@@ -309,3 +309,40 @@ service-type catalog exists yet, since one Service alone isn't a
 catalog).
 
 Next: Sprint 8 — Docker Service (awaiting approval to start).
+
+## Sprint 8 — Docker Service
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `internal/service/docker`: the second `service.Service`
+  implementation, a single container run from a caller-supplied
+  `dockerruntime.ContainerSpec` (reused directly from Sprint 6 rather
+  than duplicating its fields). Simpler than Kubernetes Service since
+  Docker Runtime's methods already map 1:1 onto the Service Rules verbs
+  — no second Runtime needed. `Reset` composes
+  `ContainerExists`/`RemoveContainer`/`CreateContainer` since
+  `docker` has no single "recreate" command.
+- `Status` maps `docker inspect`'s state to `service.Status`: unlike a
+  k3d cluster (always "running" immediately after create), a Docker
+  container genuinely has a distinct `"created"` state before Start —
+  confirmed live, not assumed — so `service.StatusCreated` is used
+  here for the first time. `"paused"`/`"restarting"`/etc. map to
+  `service.StatusError` as a deliberate catch-all, same reasoning as
+  Kubernetes Service's default case.
+- Verified the full lifecycle end-to-end with a throwaway program (not
+  committed): Create → Status (created) → Start → Status (running) →
+  Logs → Stop → Status (stopped) → Reset → Status (created) → Delete →
+  Status (confirmed `ErrNotFound`), against the real `docker` in this
+  sandbox. Cleaned up the container afterward.
+- Unit tests compose a real `docker.Runtime` over a fake
+  `runtime.Runtime`, including a table test over every observed Docker
+  state.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: wiring Docker Service into the Engine/Workspace
+(Sprint 10); Jenkins Service (Sprint 9).
+
+Next: Sprint 9 — Jenkins Service (awaiting approval to start).

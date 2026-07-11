@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 8 — Docker Service
+
+- Add the Docker Service (`internal/service/docker`): a single
+  container backed directly by `docker.Runtime`, constructed from a
+  reused `dockerruntime.ContainerSpec`.
+- Map `docker inspect` state to `service.Status`, including the
+  distinct `created` state (Docker containers, unlike k3d clusters,
+  are not immediately running after creation).
+- `Reset` composes `ContainerExists`/`RemoveContainer`/
+  `CreateContainer`.
+- Add unit tests composing a real `docker.Runtime` over a fake
+  `runtime.Runtime`.
+
 ### Sprint 7 — Kubernetes Service
 
 - Add the `Service` interface, `Status` type, and `ErrNotFound`
