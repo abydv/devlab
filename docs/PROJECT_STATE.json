@@ -3,8 +3,8 @@
   "description": "Self-hosted Personal DevOps Workspace Platform for Ubuntu Desktop",
   "module": "github.com/abydv/devlab",
   "goVersion": "1.25",
-  "currentSprint": 10,
-  "currentSprintName": "Workspace Lifecycle",
+  "currentSprint": 11,
+  "currentSprintName": "REST API",
   "sprintStatus": "complete",
   "lastUpdated": "2026-07-12",
   "architectureLocked": true,
@@ -20,7 +20,7 @@
     { "id": 8, "name": "Docker Service", "status": "complete" },
     { "id": 9, "name": "Jenkins Service", "status": "complete" },
     { "id": 10, "name": "Workspace Lifecycle", "status": "complete" },
-    { "id": 11, "name": "REST API", "status": "not_started" },
+    { "id": 11, "name": "REST API", "status": "complete" },
     { "id": 12, "name": "Dashboard", "status": "not_started" },
     { "id": 13, "name": "Browser Terminal", "status": "not_started" },
     { "id": 14, "name": "VS Code Integration", "status": "not_started" },
@@ -111,8 +111,16 @@
     "Make DeleteWorkspace context-aware and clean up Services before the Workspace record",
     "Add unit tests for every new/changed piece",
     "Manually verify the complete real lifecycle end-to-end for kubernetes and docker templates (one-off, not automated)",
-    "Verify the repository builds (Sprint 10)"
+    "Verify the repository builds (Sprint 10)",
+    "Add Fiber v2 dependency",
+    "Add ListenAddr to internal/config (DEVLAB_LISTEN_ADDR)",
+    "Implement api/: health, templates, and full workspace lifecycle routes",
+    "Add writeError mapping domain sentinels to HTTP status codes",
+    "Rewrite cmd/devlab/main.go to bootstrap every layer and serve the API; add --version",
+    "Add unit tests using fiber's app.Test() over a real Engine wired with fakes",
+    "Manually verify the compiled binary end-to-end with real curl against real k3d/docker (one-off, not automated)",
+    "Verify the repository builds (Sprint 11)"
   ],
-  "pendingApproval": "Sprint 11 - REST API",
-  "notes": "cmd/devlab/main.go remains a minimal entrypoint; CLI/API wiring to actually call the Engine is Sprint 11, which is next. engine.New now takes (*workspace.Manager, *template.Registry, *factory.Factory). CreateWorkspace resolves Services from the Template but does not provision them (lazy provisioning, ADR-0025) — StartWorkspace does, idempotently. workspace.NewManager takes (rootDir string, db *sql.DB) and returns (*Manager, error); workspace.json remains the source of truth for full Workspace data, SQLite is only a name-uniqueness/ordering index (see ADR-0010, ADR-0011); Manager also has SetStatus and DataDir now. internal/runtime.Runtime (Execute(ctx, Command) (*Result, error)) is the shared contract for Shell/Docker/k3d Runtimes (ADR-0012); no command allow-list on Shell Runtime, injection prevented structurally via argv slices (ADR-0013). k3d Runtime and Docker Runtime are composed over an injected runtime.Runtime and restrict Execute to their own single binary (ADR-0014, ADR-0015); Docker Runtime gained Privileged and RemoveVolume this sprint (ADR-0022, ADR-0024). internal/service.Service (Create/Start/Stop/Reset/Delete/Status/Logs) is the shared contract for all Services, with its own Status decoupled from workspace.Status; internal/service also now owns the service type catalog (KnownTypes/IsKnownType, ADR-0020), used by both internal/template (validation) and internal/service/factory (construction) without creating an import cycle. Kubernetes Service uses both k3d.Runtime and docker.Runtime (ADR-0016). Docker Service uses only docker.Runtime and introduced service.StatusCreated (ADR-0018). Jenkins Service embeds Docker Service (ADR-0019). internal/service/factory.Build maps a service type + workspace ID + data dir to a concrete Service: kubernetes -> kubernetes.New; docker -> Docker-in-Docker, privileged, named-volume storage (ADR-0021, ADR-0022, ADR-0024); jenkins -> jenkins.New with a dynamically allocated free port; linux/terraform/ansible -> a clear not-implemented-yet error. utils.NewID is now 12 hex chars (was 32), discovered necessary live because k3d rejects cluster names over 32 characters and devlab-<id>-kubernetes would otherwise be 50 (ADR-0023). internal/engine/lifecycle.go implements StartWorkspace/StopWorkspace/ResetWorkspace/WorkspaceStatus/WorkspaceLogs; DeleteWorkspace is now context-aware and deletes Services before the Workspace record (ADR-0025). The complete real lifecycle (Create/Start/Status/Logs/Stop/Start/Reset/Delete) was verified end-to-end against live k3d/docker for both kubernetes and docker templates, with zero leftover resources after Delete."
+  "pendingApproval": "Sprint 12 - Dashboard",
+  "notes": "Full ADR history lives in docs/DECISIONS.md (ADR-0001 through ADR-0028) — this field now tracks only current, load-bearing facts for picking up work. cmd/devlab/main.go (no flags) bootstraps config -> storage -> workspace.Manager -> template.Registry -> runtimes -> service/factory -> engine.Engine -> api server and listens on config.ListenAddr (devlab IS the REST API server process, ADR-0026); --version prints the version and exits. api/ (Fiber v2) is a thin, business-logic-free HTTP layer over Engine (ADR-0027): GET /healthz; GET /api/templates[/:name]; POST /api/workspaces; GET /api/workspaces[/:id]; DELETE /api/workspaces/:id; POST /api/workspaces/:id/{start,stop,reset}; GET /api/workspaces/:id/{status,logs}. No authentication yet (Sprint 15). engine.New takes (*workspace.Manager, *template.Registry, *factory.Factory). CreateWorkspace only creates the Workspace record; StartWorkspace lazily provisions+starts each attached Service, idempotently (ADR-0025). workspace.Manager.SetStatus/DataDir support this. internal/service.Service is the shared Service contract; internal/service also owns the service-type catalog (KnownTypes/IsKnownType) used by both internal/template (validation) and internal/service/factory (construction). internal/service/factory.Build maps a service type + workspace ID + data dir to a concrete Service: kubernetes -> k3d-backed; docker -> Docker-in-Docker (privileged, named-volume storage); jenkins -> jenkins.New with a dynamically allocated free port; linux/terraform/ansible -> a clear not-implemented-yet error. utils.NewID is 12 hex chars (not 32) to fit k3d's 32-character cluster name limit. Next candidate work: web/ Next.js Dashboard (Sprint 12)."
 }

@@ -16,7 +16,7 @@ previous sprint has been approved.
 | 8      | Docker Service          | Complete    |
 | 9      | Jenkins Service         | Complete    |
 | 10     | Workspace Lifecycle     | Complete    |
-| 11     | REST API                | Not Started |
+| 11     | REST API                | Complete    |
 | 12     | Dashboard               | Not Started |
 | 13     | Browser Terminal        | Not Started |
 | 14     | VS Code Integration     | Not Started |

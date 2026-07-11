@@ -596,3 +596,74 @@ but Service cleanup wasn't attempted. Status aggregation intentionally
 has no "partial" bucket beyond mapping disagreement to `error`, since
 `workspace.Status` (Sprint 1) has no such state and CLAUDE.md doesn't
 call for adding one.
+
+---
+
+## ADR-0026: `devlab` itself is the REST API server process
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `cmd/devlab/main.go`, run with no flags, bootstraps every
+layer (config → storage → workspace manager → template registry →
+runtimes → service factory → engine) and serves the REST API on
+`config.ListenAddr`. `--version` is the only other supported flag.
+
+**Context:** CLAUDE.md's architecture states "CLI → REST API → Engine"
+but the roadmap has no dedicated CLI sprint (noted as far back as
+Sprint 1's progress notes) — there is no separate interactive command
+set planned to be the "CLI" half of that arrow. For a self-hosted
+single-binary tool, the most direct, non-speculative reading is that
+the binary itself *is* the REST API server process; a future CLI
+client (or the Sprint 12 Dashboard) talks to it over HTTP. Building an
+interactive subcommand/HTTP-client CLI now would be scope invention
+with no CLAUDE.md instruction backing it.
+
+---
+
+## ADR-0027: API error mapping is transport translation, not business logic
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** `api/errors.go`'s `writeError` maps known domain
+sentinel errors (`workspace.ErrNotFound`, `template.ErrNameExists`,
+`service.ErrNotFound`, ...) to HTTP status codes (404, 409, 400) via
+`errors.Is`, falling back to 500 for anything unrecognized. Handlers
+never branch on business conditions themselves — they call exactly one
+Engine method and either return its result or hand its error to
+`writeError`.
+
+**Context:** CLAUDE.md requires the REST API layer to "contain no
+business logic — it validates and delegates." Deciding which HTTP
+status code represents an error the Engine already produced is
+delegation's necessary counterpart (translating a decision already
+made into the transport's vocabulary), not a new decision — the API
+layer never decides *whether* an operation should succeed, only how to
+report that Engine already decided it didn't.
+
+---
+
+## ADR-0028: Verify the compiled binary live, not just `app.Test()`
+
+**Date:** 2026-07-12
+**Status:** Accepted
+
+**Decision:** Before considering Sprint 11 complete, built the real
+`devlab` binary, ran it against a real, isolated `DEVLAB_HOME` (with
+`templates/` copied in, since `TemplatesDir` resolves relative to
+`HomeDir`), and drove the full workspace lifecycle with real `curl`
+requests against real `k3d`/`docker` — including cross-checking the
+API's reported cluster state directly against `k3d cluster list`.
+
+**Context:** `api`'s own tests use Fiber's `app.Test()`, which never
+binds a real port or spawns the real process — it proves the routing
+and handler logic, not that `go run`/the built binary actually starts,
+binds a configurable address, and serves real traffic end-to-end. This
+sprint is the first time `cmd/devlab` does real work (prior sprints
+only printed a version), so the mandatory-live-verification practice
+established since Sprint 5 applies here at the process level, not just
+the package level. Caught nothing new this time, but the discovery
+that `TemplatesDir` doesn't automatically see the repo's own
+`templates/` unless `DEVLAB_HOME` points there (or they're copied in)
+is worth remembering for deployment/packaging later.

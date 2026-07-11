@@ -1,5 +1,5 @@
-// Package config resolves DevLab's filesystem locations so no other
-// package hardcodes a path.
+// Package config resolves DevLab's filesystem locations and runtime
+// settings so no other package hardcodes a path or a port.
 package config
 
 import (
@@ -9,13 +9,16 @@ import (
 )
 
 const (
-	envHomeDir       = "DEVLAB_HOME"
-	workspacesSubdir = "workspaces"
-	templatesSubdir  = "templates"
-	databaseFile     = "devlab.db"
+	envHomeDir        = "DEVLAB_HOME"
+	envListenAddr     = "DEVLAB_LISTEN_ADDR"
+	workspacesSubdir  = "workspaces"
+	templatesSubdir   = "templates"
+	databaseFile      = "devlab.db"
+	defaultListenAddr = ":8080"
 )
 
-// Config holds the resolved filesystem layout for a DevLab instance.
+// Config holds the resolved filesystem layout and runtime settings for
+// a DevLab instance.
 type Config struct {
 	// HomeDir is the root directory DevLab stores its state under.
 	HomeDir string
@@ -25,6 +28,8 @@ type Config struct {
 	TemplatesDir string
 	// DatabasePath is the SQLite database DevLab persists its indexes to.
 	DatabasePath string
+	// ListenAddr is the address the REST API server listens on.
+	ListenAddr string
 }
 
 // Load resolves the DevLab configuration.
@@ -47,10 +52,16 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("config: resolve home directory: %w", err)
 	}
 
+	listenAddr := os.Getenv(envListenAddr)
+	if listenAddr == "" {
+		listenAddr = defaultListenAddr
+	}
+
 	return &Config{
 		HomeDir:       home,
 		WorkspacesDir: filepath.Join(home, workspacesSubdir),
 		TemplatesDir:  filepath.Join(home, templatesSubdir),
 		DatabasePath:  filepath.Join(home, databaseFile),
+		ListenAddr:    listenAddr,
 	}, nil
 }

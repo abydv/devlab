@@ -7,6 +7,7 @@ import (
 
 func TestLoadDefaultsToWorkingDirectory(t *testing.T) {
 	t.Setenv(envHomeDir, "")
+	t.Setenv(envListenAddr, "")
 
 	cfg, err := Load()
 	if err != nil {
@@ -27,6 +28,21 @@ func TestLoadDefaultsToWorkingDirectory(t *testing.T) {
 	wantDatabase := filepath.Join(cfg.HomeDir, databaseFile)
 	if cfg.DatabasePath != wantDatabase {
 		t.Errorf("DatabasePath = %q, want %q", cfg.DatabasePath, wantDatabase)
+	}
+	if cfg.ListenAddr != defaultListenAddr {
+		t.Errorf("ListenAddr = %q, want %q", cfg.ListenAddr, defaultListenAddr)
+	}
+}
+
+func TestLoadHonorsDevlabListenAddr(t *testing.T) {
+	t.Setenv(envListenAddr, ":9090")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.ListenAddr != ":9090" {
+		t.Errorf("ListenAddr = %q, want %q", cfg.ListenAddr, ":9090")
 	}
 }
 

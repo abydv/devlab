@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Sprint 11 — REST API
+
+- Add `api/`: a thin Fiber v2 HTTP surface over `internal/engine`,
+  covering health, templates, and the full workspace lifecycle.
+- Add `ListenAddr` to `internal/config` (`DEVLAB_LISTEN_ADDR`).
+- Rewrite `cmd/devlab/main.go` to bootstrap every layer and serve the
+  API by default; add `--version`.
+- Add `github.com/gofiber/fiber/v2` dependency.
+- Add unit tests using `fiber`'s `app.Test()` over a real Engine wired
+  with fakes.
+
 ### Sprint 10 — Workspace Lifecycle
 
 - Add the service type catalog (`internal/service/types.go`):

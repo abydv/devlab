@@ -174,4 +174,20 @@ All three planned Services (Kubernetes, Docker, Jenkins) are complete.
 
 ## Sprint 11 — REST API
 
+- [x] Add Fiber v2 dependency.
+- [x] Add `ListenAddr` to `internal/config` (`DEVLAB_LISTEN_ADDR`).
+- [x] Implement `api/`: health check, template routes, full workspace
+      lifecycle routes, error-to-HTTP-status mapping.
+- [x] Rewrite `cmd/devlab/main.go` to bootstrap all layers and serve
+      the API by default; keep `--version`.
+- [x] Unit tests using `fiber`'s `app.Test()` over a real Engine
+      wired with fakes.
+- [x] Manually verify the compiled binary end-to-end: `--version`,
+      then a live server driven with real `curl` requests against
+      real `k3d`/`docker` (one-off; not part of the automated suite);
+      confirm no leftover resources.
+- [x] Verify `go fmt`, `go vet`, `go test`, `go build` all pass.
+
+## Sprint 12 — Dashboard
+
 Not started. Awaiting approval to begin.

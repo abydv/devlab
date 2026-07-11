@@ -21,7 +21,10 @@ support future multi-user expansion without a redesign.
 CLI → REST API → Engine → Workspace Manager → Services → Runtime → Docker / k3d / Shell
 ```
 
-- **CLI**: user-facing command entrypoint (`cmd/devlab`).
+- **CLI**: user-facing command entrypoint (`cmd/devlab`). With no
+  roadmap sprint dedicated to a separate interactive CLI, `devlab` run
+  with no flags *is* the REST API server process (ADR-0026); a future
+  CLI client or the Dashboard would talk to it over HTTP.
 - **REST API**: HTTP surface (Fiber) exposed to the CLI and the web
   frontend. Contains no business logic — it validates and delegates.
 - **Engine**: orchestrates workspace lifecycle operations and coordinates
@@ -72,7 +75,7 @@ internal/storage/    SQLite persistence layer
 internal/config/     Configuration loading
 internal/utils/      Shared internal utilities
 pkg/                 Code intended for external/reusable consumption
-api/                 REST API layer (Fiber handlers, routes, DTOs)
+api/                 REST API layer (Fiber handlers, routes, DTOs) — see REST API
 web/                 Next.js frontend application
 templates/           On-disk template definitions (data, not code)
 workspaces/          Runtime workspace data (workspace.json, logs/, data/, cache/)
@@ -315,6 +318,44 @@ Reset → Delete) was verified end-to-end against real `k3d`/`docker`
 for both the `kubernetes` and `docker` templates before this sprint
 was considered complete — see ADR-0023 and ADR-0024 for what that
 caught.
+
+## REST API
+
+`api.New(e *engine.Engine) *fiber.App` builds the HTTP surface — the
+only thing `cmd/devlab` calls into once bootstrapping is done. Every
+handler validates its input, calls exactly one `Engine` method, and
+either returns the result or hands the error to `writeError`, which
+maps known domain sentinels to HTTP status codes (`workspace.ErrNotFound`
+→ 404, `*.ErrNameExists` → 409, `*.ErrNameRequired`/`ErrServicesRequired`/
+`ErrUnknownService` → 400, anything else → 500) — transport
+translation, not a new decision (ADR-0027).
+
+```
+GET    /healthz
+GET    /api/templates
+GET    /api/templates/:name
+POST   /api/workspaces
+GET    /api/workspaces
+GET    /api/workspaces/:id
+DELETE /api/workspaces/:id
+POST   /api/workspaces/:id/start
+POST   /api/workspaces/:id/stop
+POST   /api/workspaces/:id/reset
+GET    /api/workspaces/:id/status
+GET    /api/workspaces/:id/logs      (text/plain)
+```
+
+`cmd/devlab/main.go`, run with no flags, bootstraps every layer
+(config → storage → workspace manager → template registry → runtimes →
+service factory → engine) and calls `app.Listen(cfg.ListenAddr)` —
+`devlab` itself is the REST API server process (ADR-0026); `--version`
+is the only other supported flag. `ListenAddr` is resolved by
+`internal/config` (`DEVLAB_LISTEN_ADDR`, default `:8080`) alongside the
+filesystem paths — no hardcoded port.
+
+The API currently has no authentication (Sprint 15) — acceptable for a
+personal, single-user, typically localhost-bound tool at this stage,
+but a gap worth remembering once it's reachable beyond localhost.
 
 ## Design Rules
 

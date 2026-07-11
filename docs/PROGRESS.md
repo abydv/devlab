@@ -479,3 +479,56 @@ Engine (Sprint 11); Linux/Terraform/Ansible Service implementations
 (no dedicated roadmap sprint exists for them — see ARCHITECTURE.md).
 
 Next: Sprint 11 — REST API (awaiting approval to start).
+
+## Sprint 11 — REST API
+
+**Status:** Complete
+**Date:** 2026-07-12
+
+Delivered:
+
+- `api/`: a thin Fiber v2 HTTP surface over `internal/engine`. Holds no
+  business logic — every handler validates its input, delegates to the
+  Engine, and translates the result into an HTTP response. Routes:
+  `GET /healthz`; `GET /api/templates`, `GET /api/templates/:name`;
+  `POST /api/workspaces`, `GET /api/workspaces`, `GET
+  /api/workspaces/:id`, `DELETE /api/workspaces/:id`, `POST
+  /api/workspaces/:id/{start,stop,reset}`, `GET
+  /api/workspaces/:id/status`, `GET /api/workspaces/:id/logs` (plain
+  text). `writeError` maps domain errors (`workspace.ErrNotFound`,
+  `template.ErrNameExists`, ...) to HTTP status codes — transport
+  translation, not business logic.
+- `internal/config`: added `ListenAddr` (`DEVLAB_LISTEN_ADDR`, default
+  `:8080`), resolved the same way as the filesystem paths — no
+  hardcoded port either.
+- `cmd/devlab/main.go`: rewritten from a version-only stub into a real
+  entrypoint. With no flags, it bootstraps config → storage →
+  workspace manager → template registry → runtimes → service factory →
+  engine → API server, and serves it. `--version` still prints the
+  version and exits. There is no dedicated CLI sprint on the roadmap,
+  so `devlab` itself functions as the REST API server process — the
+  most direct reading of CLAUDE.md's "CLI → REST API → Engine" flow
+  for a self-hosted single binary.
+- Added `github.com/gofiber/fiber/v2` (v2.52.14) as a dependency.
+- Verified the actual compiled binary, not just unit tests: ran
+  `devlab --version`, then started the real server
+  (`DEVLAB_LISTEN_ADDR`, an isolated `DEVLAB_HOME` with the repo's
+  `templates/` copied in) and drove the complete workspace lifecycle
+  with real `curl` requests against real `k3d`/`docker`: create → start
+  (a real k3d cluster came up) → status → logs → stop → delete → a
+  subsequent GET correctly 404s. Cross-checked the API's view against
+  `k3d cluster list` directly at the running-cluster point — exact
+  match on cluster name and state. Shut the server down and confirmed
+  zero leftover clusters or containers.
+- Unit tests use `fiber`'s `app.Test()` against a real `Engine` wired
+  over the same fake-`runtime.Runtime` pattern used throughout the
+  project — fast, deterministic, and exercising the real routing/
+  handler code, not a mock of it.
+- Build validation passed: `go fmt`, `go vet`, `go test`, `go build`.
+
+Explicitly out of scope: the `web/` Next.js frontend (Sprint 12);
+authentication (Sprint 15) — the API currently has none, appropriate
+for a personal, single-user, localhost-bound tool at this stage but
+worth flagging.
+
+Next: Sprint 12 — Dashboard (awaiting approval to start).
